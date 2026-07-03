@@ -1,7 +1,7 @@
 {
   "name": "frequence",
   "version": "1.0.0",
-  "main": "index.ts",
+  "main": "expo-router/entry",
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
     "@react-navigation/bottom-tabs": "^7.18.2",
@@ -10,6 +10,8 @@
     "eslint": "^10.5.0",
     "eslint-config-expo": "~10.0.0",
     "expo": "^54.0.0",
+    "expo-blur": "~15.0.8",
+    "expo-linear-gradient": "~15.0.8",
     "expo-linking": "~8.0.12",
     "expo-router": "~6.0.24",
     "expo-secure-store": "~15.0.8",
