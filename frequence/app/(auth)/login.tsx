@@ -14,6 +14,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { supabase } from '../../lib/services/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -28,10 +29,22 @@ export default function LoginScreen() {
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
+
     if (error) {
       Alert.alert('Erreur', error.message); 
+      return;
+    }
+
+    // Vérifier si l'onboarding est fait
+    const userId = data.session?.user.id;
+    console.log('userId:', userId);
+    const onboardingDone = await AsyncStorage.getItem(`onboarding_done_${userId}`);
+    console.log('onboardingDone:', onboardingDone);
+
+    if (!onboardingDone) {
+      router.replace('/onboarding/genres');
     } else {
       router.replace('/(tabs)/screens/home');
     }

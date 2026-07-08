@@ -17,10 +17,10 @@ export default function RootLayout() {
       if (!isReady.current) {
         return;
       }
-      if (session) {
-        router.replace('/(tabs)');
-      } 
-      else { 
+
+      //Uniquement gérer la déconnexion ici
+      // La connexion est gérée dans index.tsx et login.tsx
+      if (!session) {
         router.replace('/(auth)/login');
       }
     });
