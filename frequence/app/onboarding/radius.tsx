@@ -30,8 +30,6 @@ export default function RadiusScreen() {
     try {
       await AsyncStorage.setItem('search_radius', String(current.value));
 
-      
-      console.log('userId reçu:', userId);
       if (userId) {
         await AsyncStorage.setItem(`onboarding_done_${userId}`, 'true');
       }

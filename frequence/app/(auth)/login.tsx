@@ -39,9 +39,7 @@ export default function LoginScreen() {
 
     // Vérifier si l'onboarding est fait
     const userId = data.session?.user.id;
-    console.log('userId:', userId);
     const onboardingDone = await AsyncStorage.getItem(`onboarding_done_${userId}`);
-    console.log('onboardingDone:', onboardingDone);
 
     if (!onboardingDone) {
       router.replace('/onboarding/genres');
