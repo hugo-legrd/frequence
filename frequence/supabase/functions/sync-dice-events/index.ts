@@ -65,7 +65,7 @@ async function upsertArtist(performer: DicePerformer): Promise<string | null> {
     .upsert({
       name: performer.name,
       image_url: performer.image ?? null,
-    }, { onConflic: 'name' })
+    }, { onConflict: 'name' })
     .select('id')
     .single();
 
@@ -87,7 +87,7 @@ async function upsertEvent(
     .upsert({
       name: event.eventTitle,
       starts_at: event.startDateTime ?? null,
-      venur_id: venueId,
+      venue_id: venueId,
       artist_id: artistId,
       image_url: event.coverUrl ?? null,
       ticket_link: event.eventUrl,
@@ -95,7 +95,7 @@ async function upsertEvent(
     }, { onConflict: 'name,starts_at'});
 
   if (error) {
-    console.error(`❌ Event upsert failed for ${event.eventTitle}:`, error.messagr);
+    console.error(`❌ Event upsert failed for ${event.eventTitle}:`, error.message);
     return false;
   }
 
@@ -107,13 +107,14 @@ async function fetchDiceEvents(): Promise<DiceEvent[]> {
   console.log('🎵 Fetching DICE events via Apify...');
 
   const res = await fetch(
-    `https://api.apify.com/v2/acts/solidcode-dice-fm-scraper/run-sync-get-dataset-items?token=${APIFY_TOKEN}&timeout=120`,
+    `https://api.apify.com/v2/acts/6fYWeAO7tYISdkrHr/run-sync-get-dataset-items?token=${APIFY_TOKEN}&timeout=200`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        startUrls: ['https://dice.fm/browse/paris-5e9e4c8073f34c16102dc9e1'],
-        maxItems: 100,
+        location: 'Paris',
+        maxResults: 20,
+        scrapeEventDetails: true,
       }),
     }
   );
@@ -172,7 +173,7 @@ Deno.serve(async () => {
         duration: `${duration}s`,
         stats,
       }),
-      { headers: { 'COntent-Type': 'application/json' } }
+      { headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) { 
     console.error(' Sync failed:', error);

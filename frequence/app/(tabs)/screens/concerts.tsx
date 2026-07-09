@@ -1,5 +1,6 @@
-import { View, Text, FlatList, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, StyleSheet, Image, Pressable } from 'react-native';
 import { useEvents } from '../../hooks/useEvents';
+import { router } from 'expo-router';
 
 export default function ConcertsScreen() {
   const { events, loading, error } = useEvents();
@@ -15,7 +16,7 @@ export default function ConcertsScreen() {
   if (error) {
     return (
       <View style={styles.center}>
-        <Text style={styles.error}>{error}</Text>
+        <Text style={styles.empty}>{error}</Text>
       </View>
     );
   }
@@ -26,24 +27,39 @@ export default function ConcertsScreen() {
         data={events}
         keyExtractor={item => item.id}
         renderItem={({ item}) => (
-          <View style={styles.card}>
-            <Text style={styles.eventName}>{item.name}</Text>
-            <Text style={styles.eventMeta}>
-              {item.artist && `${item.artist} · `}
-              {item.venue?.name} · {item.venue?.city}
-            </Text>
-            {item.starts_at && (
-              <Text style={styles.eventDate}>
-                {new Date(item.starts_at).toLocaleDateString('fr-FR', {
-                  weekday: 'short',
-                  day: 'numeric',
-                  month: 'long',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </Text>
+          <Pressable
+            style={styles.card}
+            onPress={() => router.push(`/(tabs)/screens/event/${item.id}`)}
+          >
+            {item.image_url && (
+              <Image
+                source={{ uri: item.image_url}}
+                style={styles.image}
+                resizeMode="cover"
+              />
             )}
-          </View>
+            <View style={styles.cardContent}>
+              <Text style={styles.eventName}>{item.name}</Text>
+              {item.artist && (
+                <Text style={styles.artist}>{item.artist.name}</Text>
+              )}
+              <Text style={styles.meta}>
+                {item.venue?.name}
+                {item.venue?.address ? `· ${item.venue.address}` : ''}
+              </Text>
+              {item.starts_at && (
+                <Text style={styles.date}>
+                  {new Date(item.starts_at).toLocaleDateString('fr-FR', {
+                      weekday: 'short',
+                      day: 'numeric',
+                      month: 'long',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                  })}
+                </Text>
+              )}
+            </View>
+          </Pressable>
         )}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListEmptyComponent={
@@ -75,28 +91,36 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#171717',
     borderRadius: 12,
-    padding: 16,
-    gap: 6,
+    overflow: 'hidden',
+  },
+  cardContent: {
+    padding: 14,
+    gap: 4,
+  },
+  image: {
+    width: '100%',
+    height: 180,
   },
   eventName: {
     fontSize: 14,
     fontWeight: '500',
     color: '#e5e5e5',
   },
-  eventMeta: {
+  artist: {
+    fontSize: 13,
+    color: '#a78bfa'
+  },
+  meta: {
     fontSize: 12,
     color: '#555555',
   },
-  eventDate: {
+  date: {
     fontSize: 11,
-    color: '#a78bfa',
+    color: '#3a3a3a',
+    marginTop: 2,
   },
   separator: {
     height: 10,
-  },
-  error: {
-    fontSize: 13,
-    color: '#555555',
   },
   empty: {
     fontSize: 13,
