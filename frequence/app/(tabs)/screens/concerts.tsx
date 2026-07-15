@@ -1,9 +1,12 @@
 import { View, Text, FlatList, ActivityIndicator, StyleSheet, Image, Pressable } from 'react-native';
 import { useEvents } from '../../hooks/useEvents';
 import { router } from 'expo-router';
+import { useState } from 'react';
+import FilterBar, { Filters } from '../../components/FilterBar';
 
 export default function ConcertsScreen() {
-  const { events, loading, error } = useEvents();
+  const [filters, setFilters] = useState<Filters>({ date: 'all', genres: []});
+  const { events, loading, error } = useEvents(filters);
 
   if (loading) {
     return(
@@ -26,17 +29,29 @@ export default function ConcertsScreen() {
       <FlatList
         data={events}
         keyExtractor={item => item.id}
-        renderItem={({ item}) => (
+        ListHeaderComponent={
+          <View>
+            <View style={styles.screenHeader}>
+              <Text style={styles.screenTitle}>Concerts</Text>
+              <Text style={styles.screenLocation}>Paris · ce mois-ci</Text>
+            </View>
+            <FilterBar filters={filters} onChange={setFilters} />
+          </View>
+        }
+        stickyHeaderIndices={[0]}
+        renderItem={({ item }) => (
           <Pressable
             style={styles.card}
             onPress={() => router.push(`/(tabs)/screens/event/${item.id}`)}
           >
-            {item.image_url && (
+            {item.image_url ? (
               <Image
                 source={{ uri: item.image_url}}
                 style={styles.image}
                 resizeMode="cover"
               />
+            ) : (
+              <View style={styles.imagePlaceholder} />
             )}
             <View style={styles.cardContent}>
               <Text style={styles.eventName}>{item.name}</Text>
@@ -63,12 +78,19 @@ export default function ConcertsScreen() {
         )}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListEmptyComponent={
+          !loading ? (
           <View style={styles.center}>
             <Text style={styles.empty}>Aucun événement trouvé</Text>
           </View>
+          ) : null
         }
         contentContainerStyle={styles.list}
       />
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator color='#a78bfa' />
+        </View>
+      )}
     </View>
   );
 }
@@ -82,6 +104,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0f0f0f',
     justifyContent: 'center',
+    padding: 40,
+    paddingTop: 60,
     alignItems: 'center',
   },
   list: {
@@ -101,21 +125,26 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 180,
   },
+  imagePlaceholder: {
+    width: '100%',
+    height: 160,
+    backgroundColor: '#1e1e1e',
+  },
   eventName: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '500',
     color: '#e5e5e5',
   },
   artist: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#a78bfa'
   },
   meta: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#555555',
   },
   date: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#3a3a3a',
     marginTop: 2,
   },
@@ -126,4 +155,28 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#555555',
   },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(15,15,15,0.6)',
+  },
+  screenHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 28,
+    paddingBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    backgroundColor: '#0f0f0f',
+  },
+  screenTitle: {
+    fontSize: 36,
+    fontWeight: '500',
+    color: '#e5e5e5',
+  },
+  screenLocation: {
+    fontSize: 14,
+    color: '#e5e5e5',
+  }
 });
