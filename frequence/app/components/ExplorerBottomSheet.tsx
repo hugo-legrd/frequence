@@ -1,6 +1,9 @@
-import { useCallback, useEffect, useRef } from "react";
-import { View, Text, StyleSheet, Pressable, Linking } from 'react-native';
+import { useEffect, useRef } from "react";
+import { View, Text, StyleSheet, Pressable, Linking, ScrollView } from 'react-native';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
+import { useRecommendations } from "../hooks/useRecommendations";
+import { router } from 'expo-router';
+import ArtistRecommendationCard from "./ArtistRecommendationCard";
 
 type Venue = {
   id: string;
@@ -21,6 +24,7 @@ const SNAP_POINTS = ['30%', '55%'];
 
 export default function ExplorerBottomSheet({ selectedVenue, onClose, venueCount }: Readonly<Props>) {
   const bottomSheetRef = useRef<BottomSheet>(null);
+  const { recommendations, loading: recLoading } = useRecommendations();
 
   // Rouvre la sheet quand une venue est sélectionnée
   useEffect(() => {
@@ -30,11 +34,6 @@ export default function ExplorerBottomSheet({ selectedVenue, onClose, venueCount
       bottomSheetRef.current?.snapToIndex(0);
     }
   }, [selectedVenue]);
-
-  function handleClose() {
-    onClose();
-    bottomSheetRef.current?.snapToIndex(0);
-  }
 
   function openMaps() {
     if (!selectedVenue) return;
@@ -56,11 +55,6 @@ export default function ExplorerBottomSheet({ selectedVenue, onClose, venueCount
         <View style={styles.handleContainer}>
           <View style={styles.handleRow}>
             <View style={styles.handle} />
-            {/* {selectedVenue && (
-              <Pressable onPress={handleClose} style={styles.closeBtn}>
-                <Text style={styles.closeBtnText}>✕</Text>
-              </Pressable>
-            )} */}
           </View>
         </View>
       )} 
@@ -105,6 +99,31 @@ export default function ExplorerBottomSheet({ selectedVenue, onClose, venueCount
             <View style={styles.searchBar}>
               <Text style={styles.searchPlaceholder}>Artiste, lieu, style...</Text>
             </View>
+
+            {/* Recommandations */}
+            {recommendations.length > 0 && (
+              <>
+                <Text style={styles.sectionLabel}>Recommandés pour toi</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.artistsScroll}
+                  contentContainerStyle={{ gap: 10, paddingRight: 16}}
+                >
+                  {recommendations.map(artist =>(
+                    <ArtistRecommendationCard
+                      key={artist.name}
+                      artist={artist}
+                      onPress={() => router.push({
+                        pathname: '/(tabs)/screens/concerts',
+                        params: { artistFilter: artist.name },
+                      })}
+                    />
+                  ))}
+                </ScrollView>
+              </>
+            )}
+
             <Text style={styles.sectionLabel}>Explorer par catégorie</Text>
             <View style={styles.categories}>
               {[
@@ -284,5 +303,8 @@ const styles = StyleSheet.create({
     fontSize: 10, 
     color: '#555555',
     marginTop: 2,
+  },
+  artistsScroll: {
+    marginBottom: 16,
   },
 });
