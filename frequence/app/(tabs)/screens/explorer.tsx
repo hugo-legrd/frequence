@@ -13,6 +13,7 @@ import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { supabase } from '../../../lib/services/supabase';
 import { fetchRecordStores, RecordStore } from '../../../lib/services/overpass';
+import ExplorerBottomSheet from '../../components/ExplorerBottomSheet';
 
 type Venue = {
   id: string;
@@ -34,6 +35,7 @@ export default function ExplorerScreen() {
   // List des venues récupérées depuis Supabase
   const [venues, setVenues] = useState<Venue[]>([]);
   const [stores, setStores] = useState<RecordStore[]>([]);
+  const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
 
   useEffect(() => {
     requestLocation();
@@ -150,6 +152,7 @@ export default function ExplorerScreen() {
             title={venue.name}
             description={venue.address ?? ''}
             pinColor="#f97316"
+            onPress={() => setSelectedVenue(venue)}
           />
         ))}
         {/* Pins violets pour les disquares */}
@@ -185,33 +188,11 @@ export default function ExplorerScreen() {
       </Pressable>
 
       {/* Bottom sheet — panneau fixe en bas de l'écran */}
-      <View style={styles.bottomSheet}>
-        {/* Handle — petit trait gris pour indiquer que le panneau est glissable */}
-        <View style={styles.handle} />
-
-        {/* Barre de recherche — placeholder pour l'instant */}
-        <View style={styles.searchBar}>
-          <Text style={styles.searchPlaceholder}>Artiste, lieu, style...</Text>
-        </View>
-
-        {/* Grille de 4 catégories de découverte */}
-        <View style={styles.categories}>
-          {[
-            { icon: '🎵', label: 'Événements', count: '22 ce mois' },
-            { icon: '💿', label: 'Disquaires', count: `${stores.length} autour` },
-            { icon: '🎧', label: 'DJ Sets', count: '8 ce week-end' },
-            { icon: '✨', label: 'Nouveautés', count: '5 nouveaux' },
-          ].map(cat => (
-            <Pressable key={cat.label} style={styles.category}>
-              <Text style={styles.categoryIcon}>{cat.icon}</Text>
-              <View>
-                <Text style={styles.categoryName}>{cat.label}</Text>
-                <Text style={styles.categoryCount}>{cat.count}</Text>
-              </View>
-            </Pressable>
-          ))}
-        </View>
-      </View>
+      <ExplorerBottomSheet 
+        selectedVenue={selectedVenue}
+        onClose={() => setSelectedVenue(null)}
+        venueCount={venues.length}
+      />
     </View>
   );
 }
@@ -275,49 +256,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   recenterIcon: { fontSize: 18, color: '#e5e5e5' },
-  bottomSheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#171717',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    borderTopWidth: 1,
-    borderColor: '#1e1e1e',
-    padding: 12,
-    paddingBottom: 32,
-  },
-  handle: {
-    width: 36,
-    height: 4,
-    backgroundColor: '#3a3a3a',
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 16,
-  },
-  searchBar: {
-    backgroundColor: '#0f0f0f',
-    borderWidth: 1,
-    borderColor: '#1e1e1e',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 16,
-  },
-  searchPlaceholder: { fontSize: 13, color: '#3a3a3a' },
-  categories: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  category: {
-    width: '48%',
-    backgroundColor: '#0f0f0f',
-    borderWidth: 1,
-    borderColor: '#1e1e1e',
-    borderRadius: 10,
-    padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  categoryIcon: { fontSize: 20 },
-  categoryName: { fontSize: 12, color: '#e5e5e5', fontWeight: '500' },
-  categoryCount: { fontSize: 10, color: '#555555', marginTop: 2 },
 });

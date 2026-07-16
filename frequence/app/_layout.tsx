@@ -1,6 +1,7 @@
 import { Stack, useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { supabase } from '../lib/services/supabase';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export default function RootLayout() {
   const router = useRouter();
@@ -31,5 +32,9 @@ export default function RootLayout() {
     };
   }, []);
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Stack screenOptions={{ headerShown: false }} />
+    </GestureHandlerRootView>
+  );
 }
