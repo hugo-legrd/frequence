@@ -11,6 +11,16 @@ import {
 // PROVIDER_DEFAULT = utilise Apple Maps sur iOS, Google Maps sur Android
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import * as Location from 'expo-location';
+import { supabase } from '../../../lib/services/supabase';
+import { fetchRecordStores, RecordStore } from '../../../lib/services/overpass';
+
+type Venue = {
+  id: string;
+  name: string;
+  address: string | null;
+  latitude: number;
+  longitude: number;
+};
 
 export default function ExplorerScreen() {
   // Position GPS de l'utilisateur
@@ -21,10 +31,17 @@ export default function ExplorerScreen() {
   const [loading, setLoading] = useState(true);
   // Référence vers la carte pour pouvoir la déplacer programmatiquement
   const mapRef = useRef<MapView>(null);
+  // List des venues récupérées depuis Supabase
+  const [venues, setVenues] = useState<Venue[]>([]);
+  const [stores, setStores] = useState<RecordStore[]>([]);
 
   useEffect(() => {
     requestLocation();
-  }, []);
+    if(location) {
+      fetchVenues();
+      loadStores()
+    }
+  }, [location]);
 
   // Demande la permission GPS et récupère la position actuelle
   async function requestLocation() {
@@ -51,6 +68,32 @@ export default function ExplorerScreen() {
       latitudeDelta: 0.02,
       longitudeDelta: 0.02,
     }, 500);
+  }
+
+  // Récupère les venues qui ont des coordonnées GPS valides
+  async function fetchVenues(){
+    const { data, error } = await supabase
+      .from('venues')
+      .select('id, name, address, latitude, longitude')
+      .not('latitude', 'is', null)
+      .not('longitude', 'is', null)
+      .neq('latitude', 0)
+      .neq('longitude', 0);
+
+    if (error) console.error(error);
+    else setVenues(data ?? []);
+  }
+
+  async function loadStores() {
+    if (!location) return;
+  try {
+    const data = await fetchRecordStores(location.latitude, location.longitude);
+    setStores(data);
+    console.log(`✅ ${data.length} disquaires trouvés`);
+  } catch (err) {
+    console.warn('⚠️ Overpass indisponible:', err);
+    // On continue sans les disquaires — pas bloquant
+  }
   }
 
   // Écran de chargement pendant la récupération GPS
@@ -96,7 +139,32 @@ export default function ExplorerScreen() {
           longitudeDelta: 0.02,
         }}
       >
-        {/* Ici on ajoutera les Marker pour les disquaires et concerts */}
+        {/* Pins oranges pour chaque venue de concert */}
+        {venues.map(venue =>(
+          <Marker
+            key={venue.id}
+            coordinate={{
+              latitude: venue.latitude,
+              longitude: venue.longitude,
+            }}
+            title={venue.name}
+            description={venue.address ?? ''}
+            pinColor="#f97316"
+          />
+        ))}
+        {/* Pins violets pour les disquares */}
+        {stores.map(store => (
+          <Marker
+            key={`store-${store.id}`}
+            coordinate={{
+              latitude: store.latitude,
+              longitude: store.longitude,
+            }} 
+            title={store.name}
+            description={store.address ?? ''}
+            pinColor="#a78bfa"
+          />
+        ))}
       </MapView>
 
       {/* Légende des couleurs de pins — positionnée en absolu sur la carte */}
@@ -130,7 +198,7 @@ export default function ExplorerScreen() {
         <View style={styles.categories}>
           {[
             { icon: '🎵', label: 'Événements', count: '22 ce mois' },
-            { icon: '💿', label: 'Disquaires', count: '14 autour' },
+            { icon: '💿', label: 'Disquaires', count: `${stores.length} autour` },
             { icon: '🎧', label: 'DJ Sets', count: '8 ce week-end' },
             { icon: '✨', label: 'Nouveautés', count: '5 nouveaux' },
           ].map(cat => (
