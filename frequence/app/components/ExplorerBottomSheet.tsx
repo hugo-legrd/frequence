@@ -4,6 +4,7 @@ import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import { useRecommendations } from "../hooks/useRecommendations";
 import { router } from 'expo-router';
 import ArtistRecommendationCard from "./ArtistRecommendationCard";
+import SearchBar from "./SearchBar";
 
 type Venue = {
   id: string;
@@ -58,7 +59,9 @@ export default function ExplorerBottomSheet({ selectedVenue, onClose, venueCount
           </View>
         </View>
       )} 
-      enablePanDownToClose={!!selectedVenue}
+      enablePanDownToClose={false}
+      keyboardBehavior="extend"
+      keyboardBlurBehavior="restore"
     >
       <BottomSheetView style={styles.content}>
         {selectedVenue ? (
@@ -96,14 +99,12 @@ export default function ExplorerBottomSheet({ selectedVenue, onClose, venueCount
         ) : (
           // Etat par défaut
           <>
-            <View style={styles.searchBar}>
-              <Text style={styles.searchPlaceholder}>Artiste, lieu, style...</Text>
-            </View>
+            <SearchBar />
 
             {/* Recommandations */}
             {recommendations.length > 0 && (
               <>
-                <Text style={styles.sectionLabel}>Recommandés pour toi</Text>
+                <Text style={[styles.sectionLabel, { marginTop: 16 }]}>Recommandés pour toi</Text>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
