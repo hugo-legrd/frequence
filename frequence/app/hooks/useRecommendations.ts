@@ -7,6 +7,7 @@ import {
   getTopArtistsByTag,
   LastFmArtist,
 } from '../../lib/services/lastfm';
+import { getArtistImage } from '../../lib/services/deezer';
 
 const CACHE_KEY = 'ecommendations_cache';
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24h
@@ -17,7 +18,9 @@ export type ArtistRecommendation = {
   tags: string[];
   initials: string;
   color: string;
+  imageUrl: string | null;
 };
+
 
 // Couleurs pour les avatars - générées depuis le nom de l'artiste
 const AVATAR_COLORS = [
@@ -50,6 +53,7 @@ export function useRecommendations() {
   }, []);
 
   async function loadRecommendations() {
+    await AsyncStorage.removeItem(CACHE_KEY);
     try {
       // Vérifier le cache 24h
       const cached = await AsyncStorage.getItem(CACHE_KEY);
@@ -108,11 +112,21 @@ export function useRecommendations() {
           color: getAvatarColor(a.name),
         }));
 
-        setRecommendations(all);
+        console.log('🎵 Enriching artists with Deezer images...');
+        const enriched = await Promise.all(
+          all.map(async artist => {
+            const imageUrl = await getArtistImage(artist.name);
+            console.log(`🎵 ${artist.name} → ${imageUrl ? 'image found' : 'no image'}`);
+            return { ...artist, imageUrl };
+          })
+        );
+        console.log('🎵 Enrichment done:', enriched.length, 'artists');
+
+        setRecommendations(enriched);
 
         // Mettre en cache 24h
         await AsyncStorage.setItem(CACHE_KEY, JSON.stringify({
-          data: all,
+          data: enriched,
           timestamp: Date.now(),
         }));
 

@@ -1,4 +1,4 @@
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Image } from 'react-native';
 import { ArtistRecommendation } from '../hooks/useRecommendations';
 
 type Props = {
@@ -9,11 +9,17 @@ type Props = {
 export default function ArtistRecomendationCard({ artist, onPress }: Props) {
   return (
     <View style={styles.card}>
-      {/* Avatar avec initiales colorées */}
-      <View style={[styles.avatar, {backgroundColor: artist.color}]}>
-        <Text style={styles.avatarText}>{artist.initials}</Text>
-      </View>
-
+      {artist.imageUrl ? (
+        <Image 
+          source={{ uri: artist.imageUrl }}
+          style={styles.avatar}
+          resizeMode="cover"
+        />
+      ) : (
+        <View style={[styles.avatar, {backgroundColor: artist.color}]}>
+          <Text style={styles.avatarText}>{artist.initials}</Text>
+        </View>
+      )}
       <Text style={styles.name} numberOfLines={1}>{artist.name}</Text>
       <Text style={styles.match}>{artist.match}% match</Text>
       {artist.tags.length > 0 && (
@@ -45,6 +51,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
   },
   avatarText: {
     fontSize: 14,

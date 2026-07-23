@@ -4,7 +4,8 @@ import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import { useRecommendations } from "../hooks/useRecommendations";
 import { router } from 'expo-router';
 import SearchBar from "./SearchBar";
-import ArtistRecomendationCard from "./ArtistRecommendationCard";
+import ArtistRecommendationCard from "./ArtistRecommendationCard";
+import { ArtistRecommendation } from "../hooks/useRecommendations";
 
 type Venue = {
   id: string;
@@ -30,6 +31,7 @@ type Props = {
   onClose: () => void;
   venueCount: number;
   storeCount: number;
+  recommendations: ArtistRecommendation[];
 };
 
 // Snap points fixes - on change juste l'index actif
@@ -151,7 +153,7 @@ export default function ExplorerBottomSheet({ selectedVenue, selectedStore, onCl
               contentContainerStyle={{ gap: 10, paddingRight: 16 }}
               >
                 {recommendations.map(artist => (
-                  <ArtistRecomendationCard 
+                  <ArtistRecommendationCard 
                     key={artist.name}
                     artist={artist}
                     onPress={() => router.push('/(tabs)/screens/concerts')}

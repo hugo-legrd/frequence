@@ -13,6 +13,7 @@ import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { supabase } from '../../../lib/services/supabase';
 import ExplorerBottomSheet from '../../components/ExplorerBottomSheet';
+import { useRecommendations } from '../../hooks/useRecommendations';
 
 type Venue = {
   id: string;
@@ -46,6 +47,9 @@ export default function ExplorerScreen() {
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
   const [stores, setStores] = useState<Store[]>([]);
   const [selectedStore, setSelectedStore] = useState<Store | null>(null);
+
+  const { recommendations, loading: recLoading } = useRecommendations();
+
 
   useEffect(() => {
     requestLocation();
@@ -205,9 +209,10 @@ export default function ExplorerScreen() {
       <ExplorerBottomSheet 
         selectedVenue={selectedVenue}
         selectedStore={selectedStore}
-        onClose={() => setSelectedVenue(null)}
+        onClose={() => { setSelectedVenue(null); setSelectedStore(null); }}
         venueCount={venues.length}
         storeCount={stores.length}
+        recommendations={recommendations}
       />
     </View>
   );
