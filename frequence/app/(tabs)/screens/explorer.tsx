@@ -12,7 +12,6 @@ import {
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { supabase } from '../../../lib/services/supabase';
-import { fetchRecordStores, RecordStore } from '../../../lib/services/overpass';
 import ExplorerBottomSheet from '../../components/ExplorerBottomSheet';
 
 type Venue = {
@@ -21,7 +20,17 @@ type Venue = {
   address: string | null;
   latitude: number;
   longitude: number;
-};
+}; 
+
+type Store = {
+  id: string;
+  name: string;
+  address: string | null;
+  latitude: number;
+  longitude: number;
+  schedule: string | null;
+  website: string | null;
+}
 
 export default function ExplorerScreen() {
   // Position GPS de l'utilisateur
@@ -34,8 +43,9 @@ export default function ExplorerScreen() {
   const mapRef = useRef<MapView>(null);
   // List des venues récupérées depuis Supabase
   const [venues, setVenues] = useState<Venue[]>([]);
-  const [stores, setStores] = useState<RecordStore[]>([]);
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
+  const [stores, setStores] = useState<Store[]>([]);
+  const [selectedStore, setSelectedStore] = useState<Store | null>(null);
 
   useEffect(() => {
     requestLocation();
@@ -87,15 +97,12 @@ export default function ExplorerScreen() {
   }
 
   async function loadStores() {
-    if (!location) return;
-  try {
-    const data = await fetchRecordStores(location.latitude, location.longitude);
-    setStores(data);
-    console.log(`✅ ${data.length} disquaires trouvés`);
-  } catch (err) {
-    console.warn('⚠️ Overpass indisponible:', err);
-    // On continue sans les disquaires — pas bloquant
-  }
+    const { data } = await supabase
+      .from('record_stores')
+      .select('id, name, address, latitude, longitude, schedule, website')
+      .not('latitude', 'is', null)
+      .not('longitude', 'is', null);
+    setStores(data ?? []);
   }
 
   // Écran de chargement pendant la récupération GPS
@@ -152,7 +159,10 @@ export default function ExplorerScreen() {
             title={venue.name}
             description={venue.address ?? ''}
             pinColor="#f97316"
-            onPress={() => setSelectedVenue(venue)}
+            onPress={() => {
+              setSelectedStore(null);
+              setSelectedVenue(venue)}
+            }
           />
         ))}
         {/* Pins violets pour les disquares */}
@@ -166,6 +176,10 @@ export default function ExplorerScreen() {
             title={store.name}
             description={store.address ?? ''}
             pinColor="#a78bfa"
+            onPress={() => {
+              setSelectedVenue(null);
+              setSelectedStore(store)
+            }}
           />
         ))}
       </MapView>
@@ -190,8 +204,10 @@ export default function ExplorerScreen() {
       {/* Bottom sheet — panneau fixe en bas de l'écran */}
       <ExplorerBottomSheet 
         selectedVenue={selectedVenue}
+        selectedStore={selectedStore}
         onClose={() => setSelectedVenue(null)}
         venueCount={venues.length}
+        storeCount={stores.length}
       />
     </View>
   );

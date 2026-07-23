@@ -3,8 +3,8 @@ import { View, Text, StyleSheet, Pressable, Linking, ScrollView } from 'react-na
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import { useRecommendations } from "../hooks/useRecommendations";
 import { router } from 'expo-router';
-import ArtistRecommendationCard from "./ArtistRecommendationCard";
 import SearchBar from "./SearchBar";
+import ArtistRecomendationCard from "./ArtistRecommendationCard";
 
 type Venue = {
   id: string;
@@ -14,27 +14,39 @@ type Venue = {
   longitude: number;
 };
 
+type Store = {
+  id: string;
+  name: string;
+  address: string | null;
+  latitude: number;
+  longitude: number;
+  schedule: string | null;
+  website: string | null;
+}
+
 type Props = {
   selectedVenue: Venue | null;
+  selectedStore: Store | null;
   onClose: () => void;
   venueCount: number;
+  storeCount: number;
 };
 
 // Snap points fixes - on change juste l'index actif
 const SNAP_POINTS = ['30%', '55%'];
 
-export default function ExplorerBottomSheet({ selectedVenue, onClose, venueCount }: Readonly<Props>) {
+export default function ExplorerBottomSheet({ selectedVenue, selectedStore, onClose, venueCount, storeCount }: Readonly<Props>) {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const { recommendations, loading: recLoading } = useRecommendations();
 
   // Rouvre la sheet quand une venue est sélectionnée
   useEffect(() => {
-    if (selectedVenue) {
+    if (selectedVenue || selectedStore) {
       bottomSheetRef.current?.snapToIndex(1);
     } else {
       bottomSheetRef.current?.snapToIndex(0);
     }
-  }, [selectedVenue]);
+  }, [selectedVenue, selectedStore]);
 
   function openMaps() {
     if (!selectedVenue) return;
@@ -43,6 +55,130 @@ export default function ExplorerBottomSheet({ selectedVenue, onClose, venueCount
       // Fallback Google Maps
       Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${selectedVenue.latitude},${selectedVenue.longitude}`);
     });
+  }
+
+  function renderContent() {
+    if (selectedStore) {
+      return (
+        <>
+          <View style={styles.venueHeader}>
+            <View style={[styles.venueIcon, { backgroundColor: 'rgba(167,139,250,0.15)'}]}>
+              <Text style={styles.venueIconText}>💿</Text>
+            </View>
+            <View style={styles.venueTitleBlock}>
+              <Text style={styles.venueName}>{selectedStore.name}</Text>
+              <Text style={[styles.venueType, { color: '#a78bfa' }]}>Disquaire</Text>
+            </View>
+          </View>
+
+          <View style={styles.divider}/>
+
+          {selectedStore.address && (
+            <View style={styles.infoRow}>
+              <Text style={styles.infoIcon}>📍</Text>
+              <Text style={styles.infoText}>{selectedStore.address}</Text>
+            </View>
+          )}
+
+          {selectedStore.schedule && (
+            <View style={styles.infoRow}>
+              <Text style={styles.infoIcon}>🕐</Text>
+              <Text style={styles.infoText}>{selectedStore.schedule}</Text>
+            </View>
+          )}
+
+          {selectedStore.website && (
+            <View style={styles.infoRow}>
+              <Text style={styles.infoIcon}>🌐</Text>
+              <Pressable onPress={() => Linking.openURL(selectedStore.website!)}>
+                <Text style={[styles.infoText, { color: '#a78bfa' }]}>{selectedStore.website}</Text>
+              </Pressable>
+            </View>
+          )}
+
+          <View style={styles.btnRow}>
+            <Pressable style={styles.btnSecondary} onPress={() => {
+              Linking.openURL(`maps://app?daddr=${selectedStore.latitude},${selectedStore.longitude}`);
+            }}>
+              <Text style={styles.btnSecondaryText}>Itinéraire</Text>
+            </Pressable>
+          </View>
+        </>
+      );
+    }
+
+    if (selectedVenue) {
+      return (
+        <>
+          <View style={styles.venueHeader}>
+            <View style={styles.venueIcon}>
+              <Text style={styles.venueIconText}>🎵</Text>
+            </View>
+            <View style={styles.venueTitleBlock}>
+              <Text style={styles.venueName}>{selectedVenue.name}</Text>
+              <Text style={styles.venueType}>Salle de concert</Text>
+            </View>
+          </View>
+
+          <View style={styles.divider} />
+
+          {selectedVenue.address && (
+            <View style={styles.infoRow}>
+              <Text style={styles.infoIcon}>📍</Text>
+              <Text style={styles.infoText}>{selectedVenue.address}</Text>
+            </View>
+          )}
+
+          <View style={styles.btnRow}>
+            <Pressable style={styles.btnSecondary} onPress={openMaps}>
+              <Text style={styles.btnSecondaryText}>Itinéraire</Text>
+            </Pressable>
+          </View>
+        </>
+      );
+    }
+
+    return (
+      <>
+        <SearchBar />
+        {recommendations.length > 0 && (
+          <>
+            <Text style={[styles.sectionLabel, { marginTop: 16}]}> Recommandés pour toi</Text>
+            <ScrollView 
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.artistsScroll}
+              contentContainerStyle={{ gap: 10, paddingRight: 16 }}
+              >
+                {recommendations.map(artist => (
+                  <ArtistRecomendationCard 
+                    key={artist.name}
+                    artist={artist}
+                    onPress={() => router.push('/(tabs)/screens/concerts')}
+                  />
+                ))}
+              </ScrollView>
+          </>
+        )}
+        <Text style={styles.sectionLabel}>Explorer par catégorie</Text>
+        <View style={styles.categories}>
+        {[
+          { icon: '🎵', label: 'Événements', count: `${venueCount} lieux` },
+          { icon: '💿', label: 'Disquaires', count: `${storeCount} autour` },
+          { icon: '🎧', label: 'DJ Sets', count: 'Bientôt' },
+          { icon: '✨', label: 'Nouveautés', count: 'Bientôt' },
+        ].map(cat => (
+          <Pressable key={cat.label} style={styles.category}>
+            <Text style={styles.categoryIcon}>{cat.icon}</Text>
+            <View>
+              <Text style={styles.categoryName}>{cat.label}</Text>
+              <Text style={styles.categoryCount}>{cat.count}</Text>
+            </View>
+          </Pressable>
+        ))}
+      </View>
+      </>
+    )
   }
 
   return (
@@ -64,86 +200,7 @@ export default function ExplorerBottomSheet({ selectedVenue, onClose, venueCount
       keyboardBlurBehavior="restore"
     >
       <BottomSheetView style={styles.content}>
-        {selectedVenue ? (
-          // Etat venue sélectionnée
-          <>
-            <View style={styles.venueHeader}>
-              <View style={styles.venueIcon}>
-                <Text style={styles.venueIconText}>🎵</Text>
-              </View>
-              <View>
-                <Text style={styles.venueName}>{selectedVenue.name}</Text>
-                <Text style={styles.venueType}>Salle de concert</Text>
-              </View>
-            </View>
-
-            <Pressable onPress={onClose} style={styles.closeBtn}>
-                <Text style={styles.closeBtnText}>X</Text>
-              </Pressable>
-
-            <View style={styles.divider} />
-
-            {selectedVenue.address && (
-              <View style={styles.infoRow}>
-                <Text style={styles.infoIcon}>📍</Text>
-                <Text style={styles.infoText}>{selectedVenue.address}</Text>
-              </View>
-            )}
-
-            <View style={styles.btnRow}>
-              <Pressable style={styles.btnSecondary} onPress={openMaps}>
-                <Text style={styles.btnSecondaryText}>Itinéraire</Text>
-              </Pressable>
-            </View>
-          </>
-        ) : (
-          // Etat par défaut
-          <>
-            <SearchBar />
-
-            {/* Recommandations */}
-            {recommendations.length > 0 && (
-              <>
-                <Text style={[styles.sectionLabel, { marginTop: 16 }]}>Recommandés pour toi</Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  style={styles.artistsScroll}
-                  contentContainerStyle={{ gap: 10, paddingRight: 16}}
-                >
-                  {recommendations.map(artist =>(
-                    <ArtistRecommendationCard
-                      key={artist.name}
-                      artist={artist}
-                      onPress={() => router.push({
-                        pathname: '/(tabs)/screens/concerts',
-                        params: { artistFilter: artist.name },
-                      })}
-                    />
-                  ))}
-                </ScrollView>
-              </>
-            )}
-
-            <Text style={styles.sectionLabel}>Explorer par catégorie</Text>
-            <View style={styles.categories}>
-              {[
-                 { icon: '🎵', label: 'Événements', count: `${venueCount} lieux` },
-                 { icon: '💿', label: 'Disquaires', count: 'Bientôt' },
-                 { icon: '🎧', label: 'DJ Sets', count: 'Bientôt' },
-                 { icon: '✨', label: 'Nouveautés', count: 'Bientôt' },
-              ].map(cat => (
-                <Pressable key={cat.label} style={styles.category}>
-                  <Text style={styles.categoryIcon}>{cat.icon}</Text>
-                  <View>
-                    <Text style={styles.categoryName}>{cat.label}</Text>
-                    <Text style={styles.categoryCount}>{cat.count}</Text>
-                  </View>
-                </Pressable>
-              ))}
-            </View>
-          </>
-        )}
+        {renderContent()}
       </BottomSheetView>
     </BottomSheet>
   );
@@ -308,4 +365,7 @@ const styles = StyleSheet.create({
   artistsScroll: {
     marginBottom: 16,
   },
+  venueTitleBlock: {
+    flex: 1,
+  }
 });
