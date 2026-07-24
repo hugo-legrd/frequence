@@ -15,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { supabase } from '../../lib/services/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as WebBrowser from 'expo-web-browser';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -48,14 +49,36 @@ export default function LoginScreen() {
     }
   }
 
+  WebBrowser.maybeCompleteAuthSession();
+
   async function signInWithGoogle() {
     setLoading(true);
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: 'frequence://auth/callback' },
-    });
-    setLoading(false);
-    if (error) Alert.alert('Erreur', error.message);
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { 
+          redirectTo: 'frequence://auth/callback',
+          skipBrowserRedirect: true,
+        },
+      });
+
+      if (error) throw error;
+      if (!data.url) throw new Error('No URL returned');
+
+      const result = await WebBrowser.openAuthSessionAsync(
+        data.url,
+        'frequence://auth/callback'
+      );
+
+      if (result.type === 'success') {
+        const { url } = result;
+        await supabase.auth.exchangeCodeForSession(url);
+      } 
+    } catch (err: any) {
+      Alert.alert('Erreur', err.message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -63,6 +86,20 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
+      {/* Halo ambiant violet*/}
+      <LinearGradient
+        colors={['rgba(167, 139, 250, 0.5)', 'transparent']}
+        pointerEvents='none'
+        style={{
+          position: 'absolute',
+          width: 350,
+          height: 400,
+          borderRadius: 175,
+          top: '30%',
+          alignSelf: 'center',
+        }}
+      >
+      </LinearGradient>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         {/* Logo */}
         <View style={styles.top}>
@@ -134,20 +171,6 @@ export default function LoginScreen() {
 
       </ScrollView>
 
-      {/* Halo ambiant violet*/}
-      <LinearGradient
-        colors={['rgba(167, 139, 250, 0.5)', 'transparent']}
-        pointerEvents='none'
-        style={{
-          position: 'absolute',
-          width: 350,
-          height: 400,
-          borderRadius: 175,
-          top: '30%',
-          alignSelf: 'center',
-        }}
-      >
-      </LinearGradient>
     </KeyboardAvoidingView>
   );
 }
@@ -159,14 +182,14 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flexGrow: 1,
-    justifyContent: 'space-between',
     paddingHorizontal: 32,
-    paddingTop: 100,
+    paddingTop: 120,
     paddingBottom: 48,
   },
   top: {
     alignItems: 'center',
     gap: 10,
+    marginBottom: 48,
   },
   logo: {
     fontSize: 42,
@@ -186,7 +209,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   input: {
-    backgroundColor: '#000000',
+    backgroundColor: '#171717',
     borderWidth: 1,
     borderColor: '#1e1e1e',
     borderRadius: 12,
@@ -245,6 +268,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 32,
   },
   signupText: {
     fontSize: 13,
