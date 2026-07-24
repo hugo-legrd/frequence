@@ -21,7 +21,10 @@ const RADIUS_OPTIONS = [
 export default function RadiusScreen() {
   const [index, setIndex] = useState(1); // 5 km par défaut
   const [loading, setLoading] = useState(false);
-  const { userId } = useLocalSearchParams<{ userId: string}>();
+  const { userId, genreIds } = useLocalSearchParams<{ 
+    userId: string,
+    genreIds: string,
+  }>();
 
   const current = RADIUS_OPTIONS[index];
 
@@ -31,6 +34,18 @@ export default function RadiusScreen() {
       await AsyncStorage.setItem('search_radius', String(current.value));
 
       if (userId) {
+        await supabase
+          .from('user_genres')
+          .delete()
+          .eq('user_id', userId);
+
+        const parsedIds: string[] = JSON.parse(genreIds ?? '[]');
+        if (parsedIds.length > 0) {
+          const rows = parsedIds.map(genre_id => ({ user_id: userId, genre_id }));
+          const { error } = await supabase.from('user_genres').insert(rows);
+          console.log('🎵 user_genres insert error:', error);
+        }
+
         await AsyncStorage.setItem(`onboarding_done_${userId}`, 'true');
       }
 
@@ -109,8 +124,8 @@ export default function RadiusScreen() {
             : <Text style={styles.btnText}>Continuer</Text>  
           }
         </Pressable>
-        <Pressable onPress={() => router.back()}>
-          <Text style={styles.btnBack}>← Retour</Text>
+        <Pressable onPress={() => router.push('/onboarding/genres')} style={styles.btnBack}>
+          <Text style={styles.btnBackText}>← Retour</Text>
         </Pressable>
       </View>
     </View>
@@ -222,8 +237,11 @@ const styles = StyleSheet.create({
     color: '#0f0f0f',
   },
   btnBack: {
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  btnBackText: {
     fontSize: 13,
     color: '#555555',
-    textAlign: 'center',
   },
 });

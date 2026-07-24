@@ -47,28 +47,20 @@ export default function GenresScreen(){
     setLoading(true);
   
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       const { data: { session }} = await supabase.auth.getSession();
 
-      if (user) {
-        // Sauvegarder les genres en base
-        const rows = selected
-          .filter(g => genreMap[g])
-          .map(g => ({ user_id: user.id, genre_id: genreMap[g] }));
-  
-        await supabase.from('user_genres').upsert(rows);
-  
-      } else {
-        // Fallback sans compte
-        await AsyncStorage.setItem('onboarding_done_anonymous', 'true');
-      }
-  
-      // Sauvegarder localement pour accès rapide
       await AsyncStorage.setItem('user_genres', JSON.stringify(selected));
-  
+
+      const genreIds = selected
+        .filter(g => genreMap[g])
+        .map(g => genreMap[g]);
+
       router.replace({
         pathname: '/onboarding/radius',
-        params: { userId: session?.user.id ?? '' }
+        params: { 
+          userId: session?.user.id ?? '',
+          genreIds: JSON.stringify(genreIds),
+        }
       });
     } catch (e) {
       console.error(e);
