@@ -14,6 +14,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { supabase } from '../../lib/services/supabase';
+import * as WebBrowser from 'expo-web-browser';
 
 export default function RegisterScreen() {
   const [firstName, setFirstName] = useState('');
@@ -61,14 +62,36 @@ export default function RegisterScreen() {
     }
   }
 
+  WebBrowser.maybeCompleteAuthSession();
+
   async function signInWithGoogle() {
     setLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: 'frequence://auth/callback' },
-    });
-    setLoading(false);
-    if (error) Alert.alert('Erreur', error.message);
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { 
+          redirectTo: 'frequence://auth/callback',
+          skipBrowserRedirect: true,
+        },
+      });
+
+      if (error) throw error;
+      if (!data.url) throw new Error('No URL returned');
+
+      const result = await WebBrowser.openAuthSessionAsync(
+        data.url,
+        'frequence://auth/callback',
+      );
+
+      if (result.type === 'success') {
+        const { url } = result;
+        await supabase.auth.exchangeCodeForSession(url);
+      }
+    } catch (err: any) {
+        Alert.alert('Erreur', err.message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -76,7 +99,7 @@ export default function RegisterScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <LinearGradient
-          colors={['rgba(167,139,250,0.12)', 'transparent']}
+          colors={['rgba(167,139,250,0.5)', 'transparent']}
           pointerEvents="none"
           style={styles.halo}
         />
@@ -191,21 +214,6 @@ export default function RegisterScreen() {
               </Pressable>
             </View>
           </ScrollView>
-
-          {/* Halo ambiant violet*/}
-          <LinearGradient
-            colors={['rgba(167, 139, 250, 0.5)', 'transparent']}
-            pointerEvents='none'
-            style={{
-              position: 'absolute',
-              width: 350,
-              height: 400,
-              borderRadius: 175,
-              top: '30%',
-              alignSelf: 'center',
-            }}
-          >
-      </LinearGradient>
     </KeyboardAvoidingView>
   );
 }
@@ -220,15 +228,13 @@ const styles = StyleSheet.create({
     width: 350,
     height: 350,
     borderRadius: 175,
-    top: '35%',
+    top: '30%',
     alignSelf: 'center',
-    zIndex: -1,
   },
   scroll: {
     flexGrow: 1,
-    justifyContent: 'space-between',
     paddingHorizontal: 32,
-    paddingTop: 64,
+    paddingTop: 80,
     paddingBottom: 48,
   },
   back: {
@@ -248,6 +254,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     marginTop: 24,
+    marginBottom: 32,
   },
   logo: {
     fontSize: 36,
@@ -343,6 +350,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 32,
   },
   loginText: {
     fontSize: 13,
