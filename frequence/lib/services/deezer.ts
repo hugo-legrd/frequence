@@ -18,8 +18,6 @@ export async function getArtistImage(artistName: string): Promise<string | null>
 
     const best = candidates.sort((a: any, b: any) => b.nb_fan - a.nb_fan)[0];
 
-    console.log(`🎵 ${artistName} → "${best.name}" (${best.nb_fan} fans)`);
-
     const image = best.picture_medium;
     if (!image || image.includes('d41d8cd98f00b204e9800998ecf8427e')) return null; // placeholder vide
   

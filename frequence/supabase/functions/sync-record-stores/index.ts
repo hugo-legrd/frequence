@@ -23,14 +23,12 @@ async function fetchZone(lat: number, lon: number): Promise<any[]> {
 
 Deno.serve(async () => {
   try {
-    console.log('💿 Fetching record stores via Google Places...');
 
     // Récupérer toutes les zones et dédupliquer par place_id
     const allPlaces = new Map<string, any>();
 
     for (const zone of PARIS_ZONES) {
       const results = await fetchZone(zone.lat, zone.lon);
-      console.log(`✅ Zone ${zone.lat},${zone.lon}: ${results.length} stores`);
       for (const place of results) {
         allPlaces.set(place.place_id, place);
       }
@@ -38,7 +36,6 @@ Deno.serve(async () => {
       await new Promise(r => setTimeout(r, 200));
     }
 
-    console.log(`📍 Total unique stores: ${allPlaces.size}`);
 
     let success = 0;
     let failed = 0;
@@ -67,7 +64,6 @@ Deno.serve(async () => {
         console.error(`❌ Failed: ${place.name}`, error.message);
         failed++;
       } else {
-        console.log(`✅ ${place.name}`);
         success++;
       }
     }

@@ -40,14 +40,9 @@ export async function fetchEvents(params?: {
     url += `&classificationName=${encodeURIComponent(genre)}`;
   }
 
-  console.log('URL appelée:', url);
 
   const res = await fetch(url);
   const data = await res.json();
-
-  console.log('Total événements:', data.page?.totalElements);
-  console.log('Events reçus:', data._embedded?.events?.length ?? 0);
-  console.log('Erreur API:', data.errors ?? data.fault ?? null);
 
   const events = data._embedded?.events ?? [];
 

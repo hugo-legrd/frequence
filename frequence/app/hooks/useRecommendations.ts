@@ -112,15 +112,12 @@ export function useRecommendations() {
           color: getAvatarColor(a.name),
         }));
 
-        console.log('🎵 Enriching artists with Deezer images...');
         const enriched = await Promise.all(
           all.map(async artist => {
             const imageUrl = await getArtistImage(artist.name);
-            console.log(`🎵 ${artist.name} → ${imageUrl ? 'image found' : 'no image'}`);
             return { ...artist, imageUrl };
           })
         );
-        console.log('🎵 Enrichment done:', enriched.length, 'artists');
 
         setRecommendations(enriched);
 

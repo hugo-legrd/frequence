@@ -104,7 +104,6 @@ async function upsertEvent(
 
 
 async function fetchDiceEvents(): Promise<DiceEvent[]> {
-  console.log('🎵 Fetching DICE events via Apify...');
 
   const res = await fetch(
     `https://api.apify.com/v2/acts/6fYWeAO7tYISdkrHr/run-sync-get-dataset-items?token=${APIFY_TOKEN}&timeout=200`,
@@ -124,7 +123,6 @@ async function fetchDiceEvents(): Promise<DiceEvent[]> {
   }
 
   const events = await res.json();
-  console.log(`✅ ${events.length} events fetched from DICE`);
   return events;
 }
 
@@ -154,7 +152,6 @@ Deno.serve(async () => {
 
         if (success) {
           stats.success++;
-          console.log(`✅ ${event.eventTitle}`);
         } else {
           stats.failed++;
         }
@@ -165,7 +162,6 @@ Deno.serve(async () => {
     }
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-    console.log(`\n📊 Sync terminé en ${duration}s - ${stats.success}/${stats.total} events synced`);
 
     return new Response(
       JSON.stringify({
