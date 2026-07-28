@@ -6,7 +6,7 @@ import FilterBar, { Filters } from '../../components/FilterBar';
 
 export default function ConcertsScreen() {
   const [filters, setFilters] = useState<Filters>({ date: 'all', genres: []});
-  const { events, loading, error } = useEvents(filters);
+  const { events, loading, loadingMore, error, hasMore, loadMore } = useEvents(filters);
 
   if (loading) {
     return(
@@ -29,6 +29,8 @@ export default function ConcertsScreen() {
       <FlatList
         data={events}
         keyExtractor={item => item.id}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.3}
         ListHeaderComponent={
           <View>
             <View style={styles.screenHeader}>
@@ -84,6 +86,13 @@ export default function ConcertsScreen() {
           </View>
           ) : null
         }
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={{ padding: 16, alignItems: 'center' }}>
+              <ActivityIndicator color="#a78bfa" />
+            </View>
+          ) : null
+        } 
         contentContainerStyle={styles.list}
       />
       {loading && (

@@ -2,7 +2,7 @@ import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 
 const DATE_FILTERS = [
   { key: 'all', label: 'Tous' },
-  { key: 'tonight', label: 'Ce soir' },
+  { key: 'today', label: "Aujourd'hui" },
   { key: 'weekend', label: 'Ce week-end' },
   { key: 'week', label: 'Cette semaine' },
   { key: 'month', label: 'Ce mois' },
