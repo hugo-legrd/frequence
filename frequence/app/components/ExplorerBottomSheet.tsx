@@ -1,11 +1,11 @@
 import { useEffect, useRef } from "react";
-import { View, Text, StyleSheet, Pressable, Linking, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Linking, ScrollView, TouchableOpacity } from 'react-native';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
-import { useRecommendations } from "../hooks/useRecommendations";
+import { useRecommendations, ArtistRecommendation } from "../hooks/useRecommendations";
 import { router } from 'expo-router';
 import SearchBar from "./SearchBar";
 import ArtistRecommendationCard from "./ArtistRecommendationCard";
-import { ArtistRecommendation } from "../hooks/useRecommendations";
+
 
 type Venue = {
   id: string;
@@ -32,12 +32,13 @@ type Props = {
   venueCount: number;
   storeCount: number;
   recommendations: ArtistRecommendation[];
+  onIndexChange: (index: number) => void;
 };
 
 // Snap points fixes - on change juste l'index actif
 const SNAP_POINTS = ['30%', '55%'];
 
-export default function ExplorerBottomSheet({ selectedVenue, selectedStore, onClose, venueCount, storeCount }: Readonly<Props>) {
+export default function ExplorerBottomSheet({ selectedVenue, selectedStore, onClose, venueCount, storeCount, onIndexChange }: Readonly<Props>) {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const { recommendations, loading: recLoading } = useRecommendations();
 
@@ -57,6 +58,11 @@ export default function ExplorerBottomSheet({ selectedVenue, selectedStore, onCl
       // Fallback Google Maps
       Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${selectedVenue.latitude},${selectedVenue.longitude}`);
     });
+  }
+
+  function handleClose() {
+    onClose();
+    bottomSheetRef.current?.snapToIndex(0);
   }
 
   function renderContent() {
@@ -189,19 +195,30 @@ export default function ExplorerBottomSheet({ selectedVenue, selectedStore, onCl
       index={0}
       snapPoints={SNAP_POINTS}
       backgroundStyle={styles.background}
-      handleComponent={() => (
-        // Handle custom avec croix en haut à droite
-        <View style={styles.handleContainer}>
-          <View style={styles.handleRow}>
-            <View style={styles.handle} />
-          </View>
-        </View>
-      )} 
+      handleIndicatorStyle={styles.handle}  
       enablePanDownToClose={false}
       keyboardBehavior="extend"
       keyboardBlurBehavior="restore"
+      onChange={(index) => {
+        onIndexChange(index);
+        if (index === -1) onClose();
+      }}
     >
       <BottomSheetView style={styles.content}>
+        {(selectedVenue || selectedStore) && (
+          <TouchableOpacity
+            onPress={() => {
+              console.log('🔴 close pressed');
+              handleClose();
+            }}
+            style={styles.closeBtnAbsolute}
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={styles.closeBtnText}>✕</Text>
+          </TouchableOpacity>
+        )}
+
         {renderContent()}
       </BottomSheetView>
     </BottomSheet>
@@ -217,6 +234,7 @@ const styles = StyleSheet.create({
     borderColor: '#1e1e1e'
   },
   handleContainer: {
+    width: '100%',
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 8,
@@ -225,7 +243,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    width: '100%',
     position: 'relative',
+    height: 24,
   },
   handle: {
     backgroundColor: '#3a3a3a',
@@ -266,17 +286,31 @@ const styles = StyleSheet.create({
   },
   closeBtn: {
     position: 'absolute',
-    right: 20,
+    right: 0,
+    top: -2,
     width: 28,
     height: 28,
     backgroundColor: '#1e1e1e',
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 10,
   },
   closeBtnText: {
     fontSize: 12,
     color: '#555555',
+  },
+  closeBtnAbsolute: {
+    position: 'absolute',
+    top: 0,
+    right: 16,
+    width: 28,
+    height: 28,
+    backgroundColor: '#1e1e1e',
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
   },
   divider: {
     height: 1,

@@ -9,7 +9,7 @@ import {
 // MapView = composant principal de la carte (Apple Maps sur iOS)
 // Marker = pin sur la carte
 // PROVIDER_DEFAULT = utilise Apple Maps sur iOS, Google Maps sur Android
-import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_DEFAULT, Callout } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { supabase } from '../../../lib/services/supabase';
 import ExplorerBottomSheet from '../../components/ExplorerBottomSheet';
@@ -47,6 +47,7 @@ export default function ExplorerScreen() {
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
   const [stores, setStores] = useState<Store[]>([]);
   const [selectedStore, setSelectedStore] = useState<Store | null>(null);
+  const [sheetIndex, setSheetIndex] = useState(0);
 
   const { recommendations, loading: recLoading } = useRecommendations();
 
@@ -167,7 +168,20 @@ export default function ExplorerScreen() {
               setSelectedStore(null);
               setSelectedVenue(venue)}
             }
-          />
+            anchor={{ x: 0.5, y: 0.5 }}
+            tracksViewChanges={false}
+          >
+            <View style={styles.pinOrange} />
+
+            <Callout tooltip>
+              <View style={styles.callout}>
+                <Text style={styles.calloutTitle}>{venue.name}</Text>
+                {venue.address && (
+                  <Text style={styles.calloutAddress}>{venue.address}</Text>
+                )}
+              </View>
+            </Callout>
+          </Marker>
         ))}
         {/* Pins violets pour les disquares */}
         {stores.map(store => (
@@ -184,7 +198,11 @@ export default function ExplorerScreen() {
               setSelectedVenue(null);
               setSelectedStore(store)
             }}
-          />
+            anchor={{ x: 0.5, y: 0.5 }}
+            tracksViewChanges={false}
+          >
+            <View style={styles.pinViolet} />
+          </Marker>
         ))}
       </MapView>
 
@@ -201,7 +219,10 @@ export default function ExplorerScreen() {
       </View>
 
       {/* Bouton pour recentrer la carte sur la position GPS actuelle */}
-      <Pressable style={styles.recenterBtn} onPress={recenter}>
+      <Pressable style={[styles.recenterBtn, {
+        bottom: sheetIndex === 1 ? '58%' : '33%'
+      }]} 
+        onPress={recenter}>
         <Text style={styles.recenterIcon}>◎</Text>
       </Pressable>
 
@@ -213,6 +234,7 @@ export default function ExplorerScreen() {
         venueCount={venues.length}
         storeCount={stores.length}
         recommendations={recommendations}
+        onIndexChange={setSheetIndex}
       />
     </View>
   );
@@ -275,6 +297,43 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 999,
+    elevation: 999,
   },
   recenterIcon: { fontSize: 18, color: '#e5e5e5' },
+  pinOrange: {
+    width: 20,
+    height: 20,
+    borderRadius: 20,
+    backgroundColor: '#f97316',
+    borderWidth: 3,
+    borderColor: '#ffffff',
+  },
+  pinViolet: {
+    width: 20,
+    height: 20,
+    borderRadius: 20,
+    backgroundColor: '#a78bfa',
+    borderWidth: 3,
+    borderColor: '#ffffff',
+  },
+  callout: {
+    backgroundColor: '#171717',
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#1e1e1e',
+    minWidth: 200,
+    maxWidth: 220,
+  },
+  calloutTitle: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#e5e5e5',
+    marginBottom: 2,
+  },
+  calloutAddress: {
+    fontSize: 11,
+    color: '#555555',
+  }
 });
