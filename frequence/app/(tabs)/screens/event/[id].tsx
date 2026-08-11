@@ -43,6 +43,8 @@ export default function EventDetailScreen() {
   const [interestLoading, setInterestLoading] = useState(false);
   
   useEffect(() => {
+    let cancelled = false;
+
     async function fetchEvent() {
       const { data, error } = await supabase
         .from('events')
@@ -54,6 +56,8 @@ export default function EventDetailScreen() {
         .eq('id', id)
         .single();
 
+      if (cancelled) return;
+
       if (error) console.error(error);
       else setEvent(data as unknown as EventDetail);
       setLoading(false);
@@ -61,7 +65,7 @@ export default function EventDetailScreen() {
 
     async function fetchInterest() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user || cancelled) return;
 
       const { data } = await supabase
         .from('interests')
@@ -70,11 +74,21 @@ export default function EventDetailScreen() {
         .eq('event_id', id)
         .single();
 
-      if (data) setInterest(data.status as InterestStatus);
+      if (!cancelled) {
+        setInterest(data ? (data.status as InterestStatus) : null);
+      }
     }
+
+    setEvent(null);
+    setLoading(true);
+    setInterest(null);
 
     fetchEvent();
     fetchInterest();
+
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   async function handleInterest(status: InterestStatus) {
