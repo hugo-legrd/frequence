@@ -24,10 +24,13 @@ export default function SearchBar({ onFocus, onBlur }: Props) {
   const [results, setResults] = useState<SearchResults | null>(null);
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [error, setError] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
-    if (query.length < 3) {
+    const trimmed = query.trim();
+    if (trimmed.length < 3) {
       setResults(null);
       return;
     }
@@ -35,14 +38,24 @@ export default function SearchBar({ onFocus, onBlur }: Props) {
     //Debounce 300ms
     if(debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
+      const currentRequestId = ++requestIdRef.current;
       setLoading(true);
+      setError(false)
       try {
         const data = await searchAll(query);
-        setResults(data);
+        if (currentRequestId === requestIdRef.current) {
+          setResults(data);
+        }
       } catch (err) {
         console.warn('Search error:', err);
+        if (currentRequestId === requestIdRef.current) {
+          setResults(null); // évite d'afficher des résultats périmés en cas d'erreur
+          setError(true);
+        }
       } finally {
-        setLoading(false);
+        if (currentRequestId === requestIdRef.current) {
+          setLoading(false);
+        }
       }
     }, 300);
 
@@ -63,6 +76,7 @@ export default function SearchBar({ onFocus, onBlur }: Props) {
       case 'venue':
       case 'store':
       case 'artist':
+        //TODO : Rediriger vers l'event avec les artistes si existant
         //pour l'instant on navigue vers concerts filtré
         router.push('/(tabs)/screens/concerts');
         break;
@@ -137,10 +151,10 @@ export default function SearchBar({ onFocus, onBlur }: Props) {
             </ScrollView>
           )}
 
-          {query.length >= 3 && !loading && !hasResults && (
+          {error && query.trim().length >= 3 && !loading && (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>Aucun résultat</Text>
-              <Text style={styles.emptySub}>pour "{query}"</Text>
+              <Text style={styles.emptyTitle}>Erreur de recherche</Text>
+              <Text style={styles.emptySub}>Réessayez dans un instant</Text>
             </View>
           )}
         </View>
