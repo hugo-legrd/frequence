@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react";
-import { View, Text, StyleSheet, Pressable, Linking, ScrollView, TouchableOpacity } from 'react-native';
+import { use, useEffect, useRef } from "react";
+import { Animated, View, Text, StyleSheet, Pressable, Linking, ScrollView, TouchableOpacity } from 'react-native';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import { useRecommendations, ArtistRecommendation } from "../hooks/useRecommendations";
 import { router } from 'expo-router';
@@ -40,7 +40,7 @@ const SNAP_POINTS = ['30%', '55%'];
 
 export default function ExplorerBottomSheet({ selectedVenue, selectedStore, onClose, venueCount, storeCount, onIndexChange }: Readonly<Props>) {
   const bottomSheetRef = useRef<BottomSheet>(null);
-  const { recommendations, loading: recLoading } = useRecommendations();
+  const { recommendations, loading } = useRecommendations();
 
   // Rouvre la sheet quand une venue est sélectionnée
   useEffect(() => {
@@ -50,6 +50,29 @@ export default function ExplorerBottomSheet({ selectedVenue, selectedStore, onCl
       bottomSheetRef.current?.snapToIndex(0);
     }
   }, [selectedVenue, selectedStore]);
+
+  function ArtistCardSkeleton() {
+    const opacity = useRef(new Animated.Value(0.3)).current;
+
+    useEffect(() => {
+      const anim = Animated.loop(
+        Animated.sequence([
+          Animated.timing(opacity, { toValue: 1, duration: 600, useNativeDriver: true }),
+          Animated.timing(opacity, { toValue: 0.3, duration: 600, useNativeDriver: true })
+        ])
+      );
+      anim.start();
+      return () => anim.stop();
+    }, []);
+
+    return (
+      <Animated.View style={[styles.skeletonCard, { opacity }]}>
+        <View style={styles.skeletonImage} />
+        <View style={styles.skeletonLine}/>
+        <View style={[styles.skeletonLine, { width: '60%' }]}/>
+      </Animated.View>
+    );
+  }
 
   function openMaps() {
     if (!selectedVenue) return;
@@ -149,7 +172,7 @@ export default function ExplorerBottomSheet({ selectedVenue, selectedStore, onCl
     return (
       <>
         <SearchBar />
-        {recommendations.length > 0 && (
+        {(loading || recommendations.length > 0) && (
           <>
             <Text style={[styles.sectionLabel, { marginTop: 16}]}> Recommandés pour toi</Text>
             <ScrollView 
@@ -158,12 +181,14 @@ export default function ExplorerBottomSheet({ selectedVenue, selectedStore, onCl
               style={styles.artistsScroll}
               contentContainerStyle={{ gap: 10, paddingRight: 16 }}
               >
-                {recommendations.map(artist => (
-                  <ArtistRecommendationCard 
-                    key={artist.name}
-                    artist={artist}
-                    onPress={() => router.push('/(tabs)/screens/concerts')}
-                  />
+                {loading
+                  ? Array.from({ length: 4 }).map((_, i) => <ArtistCardSkeleton key={i} />)
+                  : recommendations.map(artist => (
+                    <ArtistRecommendationCard
+                      key={artist.name}
+                      artist={artist}
+                      onPress={() => router.push('/(tabs)/screens/concerts')}
+                    />
                 ))}
               </ScrollView>
           </>
@@ -403,5 +428,25 @@ const styles = StyleSheet.create({
   },
   venueTitleBlock: {
     flex: 1,
+  },
+  skeletonCard: {
+    width: 120,
+    height: 150,
+    borderRadius: 12,
+    backgroundColor: '#1a1a1a',
+    padding: 8,
+  },
+  skeletonImage: {
+    width: '100%',
+    height: 90,
+    borderRadius: 8,
+    backgroundColor: '#2a2a2a',
+    marginBottom: 8,
+  },
+  skeletonLine: {
+    height: 10,
+    borderRadius: 4,
+    backgroundColor: '#2a2a2a',
+    marginBottom: 4,
   }
 });
