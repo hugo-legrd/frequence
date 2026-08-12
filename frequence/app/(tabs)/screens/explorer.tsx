@@ -10,6 +10,7 @@ import {
 // Marker = pin sur la carte
 // PROVIDER_DEFAULT = utilise Apple Maps sur iOS, Google Maps sur Android
 import MapView, { Marker, PROVIDER_DEFAULT, Callout } from 'react-native-maps';
+import Animated, { useSharedValue, useAnimatedStyle, interpolate, Extrapolation } from 'react-native-reanimated';
 import * as Location from 'expo-location';
 import { supabase } from '../../../lib/services/supabase';
 import ExplorerBottomSheet from '../../components/ExplorerBottomSheet';
@@ -51,7 +52,11 @@ export default function ExplorerScreen() {
 
   const { recommendations, loading: recLoading } = useRecommendations();
 
-
+  const animatedIndex = useSharedValue(0);
+  const recenterBtnStyle = useAnimatedStyle(() => ({
+    bottom: `${interpolate(animatedIndex.value, [0, 1], [31, 56], Extrapolation.CLAMP)}%`,
+  }));
+  
   useEffect(() => {
     requestLocation();
     if(location) {
@@ -219,12 +224,11 @@ export default function ExplorerScreen() {
       </View>
 
       {/* Bouton pour recentrer la carte sur la position GPS actuelle */}
-      <Pressable style={[styles.recenterBtn, {
-        bottom: sheetIndex === 1 ? '58%' : '33%'
-      }]} 
-        onPress={recenter}>
-        <Text style={styles.recenterIcon}>◎</Text>
-      </Pressable>
+      <Animated.View style={[styles.recenterBtn, recenterBtnStyle]}>
+        <Pressable onPress={recenter}>
+          <Text style={styles.recenterIcon}>◎</Text>
+        </Pressable>
+      </Animated.View>
 
       {/* Bottom sheet — panneau fixe en bas de l'écran */}
       <ExplorerBottomSheet 
@@ -235,6 +239,7 @@ export default function ExplorerScreen() {
         storeCount={stores.length}
         recommendations={recommendations}
         onIndexChange={setSheetIndex}
+        animatedIndex={animatedIndex}
       />
     </View>
   );

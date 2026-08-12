@@ -1,5 +1,6 @@
 import { use, useEffect, useRef } from "react";
 import { Animated, View, Text, StyleSheet, Pressable, Linking, ScrollView, TouchableOpacity } from 'react-native';
+import type { SharedValue } from 'react-native-reanimated';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import { useRecommendations, ArtistRecommendation } from "../hooks/useRecommendations";
 import { router } from 'expo-router';
@@ -33,12 +34,13 @@ type Props = {
   storeCount: number;
   recommendations: ArtistRecommendation[];
   onIndexChange: (index: number) => void;
+  animatedIndex: SharedValue<number>;
 };
 
 // Snap points fixes - on change juste l'index actif
 const SNAP_POINTS = ['30%', '55%'];
 
-export default function ExplorerBottomSheet({ selectedVenue, selectedStore, onClose, venueCount, storeCount, onIndexChange }: Readonly<Props>) {
+export default function ExplorerBottomSheet({ selectedVenue, selectedStore, onClose, venueCount, storeCount, onIndexChange, animatedIndex }: Readonly<Props>) {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const { recommendations, loading } = useRecommendations();
 
@@ -219,6 +221,8 @@ export default function ExplorerBottomSheet({ selectedVenue, selectedStore, onCl
       ref={bottomSheetRef}
       index={0}
       snapPoints={SNAP_POINTS}
+      enableDynamicSizing={false}
+      animatedIndex={animatedIndex}
       backgroundStyle={styles.background}
       handleIndicatorStyle={styles.handle}  
       enablePanDownToClose={false}
