@@ -1,8 +1,13 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { router } from 'expo-router';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, RefreshControl } from 'react-native';
 import { useFriendsActivity } from '../../../hooks/useFriendsActivity';
 import type { FriendActivityRow } from '../../../../lib/types/activity';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+useEffect(() => {
+  AsyncStorage.setItem('friends_last_seen_at', new Date().toISOString());
+}, []);
 
 function timeAgo(isoDate: string): string {
   const diffMs = Date.now() - new Date(isoDate).getTime();
@@ -51,14 +56,20 @@ function ActivityRow({ item }: { item: FriendActivityRow }) {
   const verb = item.status === 'interested' ? 'est interéssé par' : 'va à';
   const target = item.artist_name ?? item.event_name;
 
+  function goToProfile() {
+    router.push(`/(tabs)/screens/amis/${item.actor_id}`);
+  }
+
   return (
     <View style={styles.row}>
-      <View style={styles.avatar}>
-        <Text style={styles.avatarText}>{initial}</Text>
-      </View>
+      <Pressable onPress={goToProfile} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{initial}</Text>
+        </View>
+      </Pressable>
       <View style={styles.rowContent}>
         <Text style={styles.title}>
-          <Text style={styles.bold}>{name}</Text> {verb}{' '}
+          <Text style={styles.bold} onPress={goToProfile}>{name}</Text> {verb}{' '}
           <Text style={styles.bold}>{target}</Text>
         </Text>
         <Text style={styles.subtitle}>
@@ -72,12 +83,29 @@ function ActivityRow({ item }: { item: FriendActivityRow }) {
 }
 
 export default function FriendsScreen() {
-  const { activity, loading } = useFriendsActivity();
+  const { activity, loading, refetch } = useFriendsActivity();
+  const [refreshing, setRefreshing] = useState(false);
   const groups = useMemo(() => groupByDay(activity), [activity]);
+
+  async function onRefresh() {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  }
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent} 
+        showsVerticalScrollIndicator={false} 
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#a78bfa"
+          />
+        }
+      >
         <View style={styles.header}>
           <View style={styles.headerTop}>
             <View>
@@ -140,16 +168,18 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   searchBtn: {
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
     borderRadius: 18,
-    backgroundColor: '#171717',
+    backgroundColor: 'rgba(167,139,250,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(167,139,250,0.3)'
   },
   searchIcon: {
-    fontSize: 18,
-    color: '#e5e5e5,'
+    fontSize: 30,
+    color: '#a78bfa,'
   },
   sectionLabel: {
     fontSize: 12,
