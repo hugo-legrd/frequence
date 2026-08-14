@@ -33,7 +33,7 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="screens/amis"
+        name="screens/amis/amis"
         options={{
           title: 'Amis',
           tabBarIcon: ({ color }) => <Ionicons name="people" size={24} color={color} />,
@@ -49,6 +49,10 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="screens/event/[id]"
         options={{ href: null}}
+      />
+      <Tabs.Screen
+        name="screens/amis/search"
+        options={{ href: null }}
       />
     </Tabs>
   );
