@@ -1,7 +1,10 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useUnreadActivityCount } from '../hooks/useUnreadActivityCount';
 
 export default function TabsLayout() {
+  const { count } = useUnreadActivityCount();
+
   return (
     <Tabs
       screenOptions={{
@@ -33,10 +36,13 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="screens/amis/amis"
+        name="screens/amis"
         options={{
           title: 'Amis',
           tabBarIcon: ({ color }) => <Ionicons name="people" size={24} color={color} />,
+          tabBarBadge: count > 0 ? count : undefined,
+          tabBarBadgeStyle: { backgroundColor: '#a78bfa' },
+
         }}
       />
       <Tabs.Screen
@@ -49,10 +55,6 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="screens/event/[id]"
         options={{ href: null}}
-      />
-      <Tabs.Screen
-        name="screens/amis/search"
-        options={{ href: null }}
       />
     </Tabs>
   );

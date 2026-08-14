@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { router } from 'expo-router';
 import { View, Text, TextInput, FlatList, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { useUserSearch, UserSearchResult } from '../../../hooks/useUserSearch';
 import { useFollow } from '../../../hooks/useFollow';
@@ -57,7 +58,9 @@ export default function SearchFriendsScreen() {
           const following = isFollowing(item);
           return (
             <View style={styles.row}>
-              <Text style={styles.name}>{item.display_name ?? 'Utilisateur'}</Text>
+              <Pressable onPress={() => router.push(`/(tabs)/screens/amis/${item.id}`)}>
+                <Text style={styles.name}>{item.display_name ?? 'Utilisateur'}</Text>
+              </Pressable>
               <Pressable
                 style={[styles.btn, following && styles.btnActive]}
                 onPress={() => toggleFollow(item)}
@@ -70,6 +73,14 @@ export default function SearchFriendsScreen() {
             </View>
           )
         }}
+        ListEmptyComponent={
+          !loading && query.trim().length >= 2 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>Aucun Utilisateur trouvé</Text>
+              <Text style={styles.emptySub}>pour "{query}"</Text>
+            </View>
+          ) : null
+        }
       />
     </View>
   )
@@ -101,4 +112,18 @@ const styles = StyleSheet.create({
   btnActive: { backgroundColor: '#a78bfa' },
   btnText: { color: '#a78bfa', fontSize: 13, fontWeight: '600'},
   btnTextActive: { color: '#0f0f0f' },
+  emptyState: {
+    alignItems: 'center',
+    paddingTop: 60,
+  },
+  emptyTitle: {
+    color: '#e5e5e5',
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  emptySub: {
+    color: '#555555',
+    fontSize: 13,
+    marginTop: 4,
+  },
 })
