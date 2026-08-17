@@ -1,9 +1,9 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useUnreadActivityCount } from '../hooks/useUnreadActivityCount';
+import { UnreadActivityProvider, useUnreadActivity } from './context/UnreadActivityContext';
 
-export default function TabsLayout() {
-  const { count } = useUnreadActivityCount();
+function TabsLayout() {
+  const { count } = useUnreadActivity();
 
   return (
     <Tabs
@@ -58,4 +58,12 @@ export default function TabsLayout() {
       />
     </Tabs>
   );
+}
+
+export default function TabsLayoutOuter() {
+  return (
+    <UnreadActivityProvider>
+      <TabsLayout />
+    </UnreadActivityProvider>
+  )
 }

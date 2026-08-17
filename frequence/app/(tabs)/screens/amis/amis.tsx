@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Refre
 import { useFriendsActivity } from '../../../hooks/useFriendsActivity';
 import type { FriendActivityRow } from '../../../../lib/types/activity';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useUnreadActivity } from '../../context/UnreadActivityContext';
 
 function timeAgo(isoDate: string): string {
   const diffMs = Date.now() - new Date(isoDate).getTime();
@@ -82,9 +83,10 @@ export default function FriendsScreen() {
   const { activity, loading, refetch } = useFriendsActivity();
   const [refreshing, setRefreshing] = useState(false);
   const groups = useMemo(() => groupByDay(activity), [activity]);
+  const { markAsSeen } = useUnreadActivity();
 
   useEffect(() => {
-    AsyncStorage.setItem('friends_last_seen_at', new Date().toISOString());
+    markAsSeen();
   }, []);
 
   async function onRefresh() {
