@@ -82,15 +82,15 @@ export default function PublicProfileScreen() {
           onPress={toggleFollow}
           disabled={followLoading}
         >
-          {mutuals.length > 0 && (
-            <Text style={styles.mutualsText}>
-              Amis en commun: {mutuals.map(m => m.display_name).join(', ')}
-            </Text>
-          )}
           <Text style={[styles.followBtnText, profile.is_following && styles.followBtnTextActive]}>
             {profile.is_following ? 'Suivi' : 'Suivre'}
           </Text>
         </Pressable>
+        {mutuals.length > 0 && (
+            <Text style={styles.mutualsText}>
+              Amis en commun: {mutuals.map(m => m.display_name).join(', ')}
+            </Text>
+          )}
       </View>
     </View>
   )
