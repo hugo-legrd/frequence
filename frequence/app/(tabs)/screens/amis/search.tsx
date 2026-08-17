@@ -1,13 +1,16 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { router } from 'expo-router';
-import { View, Text, TextInput, FlatList, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, FlatList, Pressable, StyleSheet, ActivityIndicator, Animated } from 'react-native';
 import { useUserSearch, UserSearchResult } from '../../../hooks/useUserSearch';
 import { useFollow } from '../../../hooks/useFollow';
+import { useSearchHistory } from '../../../hooks/useSearchHistory';
+import * as Haptics from 'expo-haptics';
 
 export default function SearchFriendsScreen() {
   const [query, setQuery] = useState('');
   const { results, loading } = useUserSearch(query);
   const { follow, unfollow } = useFollow();
+  const { history, addToHistory, clearHistory } = useSearchHistory();
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
 
   // État local optimiste — évite d'attendre le round-trip Supabase pour mettre à jour le bouton
@@ -17,7 +20,13 @@ export default function SearchFriendsScreen() {
     return localFollowState[user.id] ?? user.is_following;
   }
 
+  function handleUserPress(user: UserSearchResult) {
+    addToHistory(query.trim());
+    router.push(`/(tabs)/screens/amis/${user.id}`);
+  }
+
   async function toggleFollow(user: UserSearchResult) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const currentlyFollowing = isFollowing(user);
     setPendingIds(prev => new Set(prev).add(user.id));
     setLocalFollowState(prev => ({ ...prev, [user.id]: !currentlyFollowing}));
@@ -38,6 +47,28 @@ export default function SearchFriendsScreen() {
       })
   }
 
+  function UserRowSkeleton() {
+    const opacity = useRef(new Animated.Value(0.3)).current;
+
+    useEffect(() => {
+      const anim = Animated.loop(
+        Animated.sequence([
+          Animated.timing(opacity, { toValue: 1, duration: 600, useNativeDriver: true }),
+          Animated.timing(opacity, { toValue: 0.3, duration: 600, useNativeDriver: true }),
+        ])
+      );
+      anim.start();
+      return () => anim.stop();
+    }, []);
+
+    return (
+      <Animated.View style={[styles.skeletonRow, { opacity }]}>
+        <View style={styles.skeletonAvatar} />
+        <View style={styles.skeletonNameLine} />
+      </Animated.View>
+    )
+  }
+
   return (
     <View style={styles.container}>
       <TextInput 
@@ -49,16 +80,34 @@ export default function SearchFriendsScreen() {
         autoCapitalize="none"
       />
 
-      {loading && <ActivityIndicator color="#a78bfa" style={{ marginTop: 20 }} />}
+      {query.trim().length === 0 && history.length > 0 && (
+        <View style={styles.historySection}>
+          <View style={styles.historyHeader}>
+            <Text style={styles.historyLabel}>Recherches récentes</Text>
+            <Pressable onPress={clearHistory}>
+              <Text style={styles.historyClear}>Effacer</Text>
+            </Pressable>
+          </View>
+          {history.map(term => (
+            <Pressable key={term} style={styles.historyItem} onPress={() => setQuery(term)}>
+              <Text style={styles.historyIcon}>↺</Text>
+              <Text style={styles.historyText}>{term}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
 
-      <FlatList
+      {loading 
+        ? Array.from({ length: 5}).map((_, i) => <UserRowSkeleton key={i} />)
+        : (
+          <FlatList
         data={results}
         keyExtractor={item => item.id}
         renderItem={({ item }) => {
           const following = isFollowing(item);
           return (
             <View style={styles.row}>
-              <Pressable onPress={() => router.push(`/(tabs)/screens/amis/${item.id}`)}>
+              <Pressable style={{ flex: 1}} onPress={() => handleUserPress(item)}>
                 <Text style={styles.name}>{item.display_name ?? 'Utilisateur'}</Text>
               </Pressable>
               <Pressable
@@ -82,6 +131,8 @@ export default function SearchFriendsScreen() {
           ) : null
         }
       />
+        )  
+      }
     </View>
   )
 }
@@ -126,4 +177,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 4,
   },
+  skeletonRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, gap: 12},
+  skeletonAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#1e1e1e' },
+  skeletonNameLine: { height: 14, width: '40%', borderRadius: 4, backgroundColor: '#1e1e1e'},
+  historySection: { marginBottom: 16 },
+  historyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  historyLabel: { color: '#555555', fontSize: 12, fontWeight: '600' },
+  historyClear: { color: '#a78bfa', fontSize: 12},
+  historyItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, gap: 8},
+  historyIcon: { color: '#555555', fontSize: 14 },
+  historyText: { color: '#e5e5e5', fontSize: 14 },
 })
