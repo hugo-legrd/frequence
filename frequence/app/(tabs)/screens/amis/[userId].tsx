@@ -3,6 +3,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { usePublicProfile } from '../../../hooks/usePublicProfile';
 import { useFollow } from '../../../hooks/useFollow';
 import { useMutualFriends } from '../../../hooks/useMutualFriends';
+import * as Haptics from 'expo-haptics';
 
 export default function PublicProfileScreen() {
   const { userId } = useLocalSearchParams<{ userId: string }>();
@@ -11,6 +12,7 @@ export default function PublicProfileScreen() {
   const { mutuals } = useMutualFriends(userId);
 
   async function toggleFollow() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (!profile) return;
     const wasFollowing = profile.is_following;
 

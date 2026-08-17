@@ -12,7 +12,8 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { supabase } from '../../../../lib/services/supabase';
 import type { EventDetail, InterestStatus } from '../../../../lib/types/event';
-import VenueMiniMap from '../../../components/MiniMap'
+import VenueMiniMap from '../../../components/MiniMap';
+import * as Haptics from 'expo-haptics';
 
 export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -71,6 +72,7 @@ export default function EventDetailScreen() {
   }, [id]);
 
   async function handleInterest(status: InterestStatus) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       router.push('/(auth)/login');
