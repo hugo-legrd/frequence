@@ -5,10 +5,6 @@ import { useFriendsActivity } from '../../../hooks/useFriendsActivity';
 import type { FriendActivityRow } from '../../../../lib/types/activity';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-useEffect(() => {
-  AsyncStorage.setItem('friends_last_seen_at', new Date().toISOString());
-}, []);
-
 function timeAgo(isoDate: string): string {
   const diffMs = Date.now() - new Date(isoDate).getTime();
   const minutes = Math.floor(diffMs / 60000);
@@ -87,15 +83,31 @@ export default function FriendsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const groups = useMemo(() => groupByDay(activity), [activity]);
 
+  useEffect(() => {
+    AsyncStorage.setItem('friends_last_seen_at', new Date().toISOString());
+  }, []);
+
   async function onRefresh() {
     setRefreshing(true);
-    await refetch();
-    setRefreshing(false);
+    try {
+      await Promise.all([
+        refetch(),
+        new Promise(resolve => setTimeout(resolve, 600)), // délai artificiel minimum
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
   }
 
   return (
     <View style={styles.container}>
+      {refreshing && (
+        <View style={styles.customRefreshIndicator}>
+          <ActivityIndicator color="#a78bfa" size="small" />
+        </View> 
+      )}
       <ScrollView 
+        contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.scrollContent} 
         showsVerticalScrollIndicator={false} 
         refreshControl={
@@ -170,7 +182,7 @@ const styles = StyleSheet.create({
   searchBtn: {
     width: 40,
     height: 40,
-    borderRadius: 18,
+    borderRadius: 20,
     backgroundColor: 'rgba(167,139,250,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -179,7 +191,7 @@ const styles = StyleSheet.create({
   },
   searchIcon: {
     fontSize: 30,
-    color: '#a78bfa,'
+    color: '#a78bfa'
   },
   sectionLabel: {
     fontSize: 12,
@@ -235,5 +247,14 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingTop: 60,
+    flexGrow: 1,
+  },
+  customRefreshIndicator: {
+    position: 'absolute',
+    top: 150,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 999,
   },
 });
