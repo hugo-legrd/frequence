@@ -9,7 +9,7 @@ export default function PublicProfileScreen() {
   const { userId } = useLocalSearchParams<{ userId: string }>();
   const { profile, loading, setProfile } = usePublicProfile(userId);
   const { follow, unfollow, loading: followLoading } = useFollow();
-  const { mutuals } = useMutualFriends(userId);
+  const { mutuals, totalCount } = useMutualFriends(userId);
 
   async function toggleFollow() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -89,6 +89,7 @@ export default function PublicProfileScreen() {
         {mutuals.length > 0 && (
             <Text style={styles.mutualsText}>
               Amis en commun: {mutuals.map(m => m.display_name).join(', ')}
+              {totalCount > mutuals.length && ` +${totalCount - mutuals.length} autre${totalCount - mutuals.length > 1 ? 's' : ''}`}
             </Text>
           )}
       </View>

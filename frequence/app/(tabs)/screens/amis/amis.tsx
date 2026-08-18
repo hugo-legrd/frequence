@@ -3,7 +3,6 @@ import { router } from 'expo-router';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, RefreshControl } from 'react-native';
 import { useFriendsActivity } from '../../../hooks/useFriendsActivity';
 import type { FriendActivityRow } from '../../../../lib/types/activity';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUnreadActivity } from '../../context/UnreadActivityContext';
 
 function timeAgo(isoDate: string): string {
@@ -162,7 +161,6 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 16,
-    paddingTop: 40,
     paddingBottom: 16,
     backgroundColor: '#0f0f0f'
   },
