@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, Pressable, ActivityIndicator, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Animated } from 'react-native';
 import { router } from 'expo-router';
 import { useMyProfile } from '../../../hooks/useMyProfile';
 import { useMyEvents } from '../../../hooks/useMyEvents';
@@ -7,6 +7,10 @@ import * as Haptics from 'expo-haptics';
 import { RefreshControl } from 'react-native-gesture-handler';
 import { MyEventRow } from '../../../../lib/types/profile';
 import RemoteImage from '../../../components/RemoteImage';
+import ViewShot from 'react-native-view-shot';
+import ProfileShareCard from '../../../components/ProfileShareCard';
+import { useShareProfile } from '../../../hooks/useShareProfile';
+import { useMyArtists } from '../../../hooks/useMyArtists';
 
 
 function formatMemberSince(iso: string): string {
@@ -74,6 +78,18 @@ function FadeInSection({ children, delay = 0 }: { children: React.ReactNode; del
   )
 }
 
+function groupPastEventsByYear(events: MyEventRow[]) {
+  const groups: Record<string, MyEventRow[]> = {};
+  for (const event of events) {
+    if (!event.starts_at) continue;
+    const year = new Date(event.starts_at).getFullYear().toString();
+    if (!groups[year]) groups[year] = [];
+    groups[year].push(event); 
+  }
+  return Object.entries(groups).sort(([a], [b]) => Number(b) - Number(a));
+}
+
+
 function EventRow({ item, badge }: { item: MyEventRow; badge?: string }) {
   function handlePress() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -105,7 +121,9 @@ function EventRow({ item, badge }: { item: MyEventRow; badge?: string }) {
 export default function ProfileScreen() {
   const { profile, loading: profileLoading, refetch: refetchProfile } = useMyProfile();
   const { events, loading: eventsLoading, refetch: refetchEvents } = useMyEvents();
+  const { artists } = useMyArtists();
   const [refreshing, setRefreshing] = useState(false);
+  const { shotRef, share } = useShareProfile();
 
   async function onRefresh() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -129,6 +147,7 @@ export default function ProfileScreen() {
     () => events.filter(e => e.is_past),
     [events]
   );
+  const topArtist = useMemo(() => artists[0]?.artist_name, [artists]);
 
   if (profileLoading) {
     return (
@@ -147,6 +166,18 @@ export default function ProfileScreen() {
   }
   return (
     <View style={styles.container}>
+      <View style={styles.hiddenShotContainer} pointerEvents='none'>
+        <ViewShot 
+          ref={shotRef} options={{ format: 'png', quality: 1}}>
+            <ProfileShareCard 
+              displayName={profile.display_name}
+              concertsCount={profile.concerts_count}
+              artistsCount={profile.artists_count}
+              topArtist={topArtist}
+              year={new Date().getFullYear()}
+            />
+          </ViewShot>
+      </View>
       {refreshing && (
         <View style={styles.refreshBanner}>
           <ActivityIndicator color="#a78bfa" size="small" />
@@ -273,12 +304,32 @@ export default function ProfileScreen() {
           {!eventsLoading && pastEvents.length > 0 && (
             <>
               <Text style={styles.sectionLabel}>CONCERTS PASSÉS</Text>
-              {pastEvents.map(item => (
-                <EventRow key={item.event_id} item={item} />
+              {groupPastEventsByYear(pastEvents).map(([year, yearEvents]) => (
+                <View key={year} style={styles.yearGroup}>
+                  <View style={styles.yearHeader}>
+                    <View style={styles.yearLine} />
+                    <Text style={styles.yearLabel}>{year}</Text>
+                    <Text style={styles.yearCount}>
+                      {yearEvents.length} concert{yearEvents.length > 1 ? 's' : ''}
+                    </Text>
+                  </View>
+                  {yearEvents.map(item => (
+                    <EventRow key={item.event_id} item={item} />
+                  ))}
+                </View>
               ))}
             </>
           )}
         </FadeInSection>
+        <Pressable
+              style={styles.shareBtn}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                share();
+              }}
+            >
+              <Text style={styles.shareBtnText}>Partager mon profil</Text>
+            </Pressable>
       </ScrollView>
     </View>
   );
@@ -404,5 +455,46 @@ const styles = StyleSheet.create({
   skeletonLine: {
     backgroundColor: '#1e1e1e',
     borderRadius: 4,
-  } 
+  },
+  yearGroup: { marginBottom: 8 },
+  yearHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  yearLine: {
+    width: 3,
+    height: 16,
+    borderRadius: 2,
+    backgroundColor: '#a78bfa',
+  },
+  yearLabel: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#e5e5e5',
+  },
+  yearCount: {
+    fontSize: 12,
+    color: '#555555',
+    marginLeft: 'auto',
+  },
+  shareBtn: {
+    marginHorizontal: 16,
+    marginTop: 24,
+    backgroundColor: 'rgba(167,139,250,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(167,139,250,0.3)',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  shareBtnText: { color: '#a78bfa', fontSize: 14, fontWeight: '600' },
+  hiddenShotContainer: {
+    position: 'absolute',
+    top: -9999,
+    left: -9999,
+    opacity: 0,
+  }
 });
