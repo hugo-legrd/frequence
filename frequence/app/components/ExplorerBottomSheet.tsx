@@ -1,11 +1,13 @@
 import { use, useEffect, useRef } from "react";
-import { Animated, View, Text, StyleSheet, Pressable, Linking, ScrollView, TouchableOpacity } from 'react-native';
+import { Animated, View, Text, StyleSheet, Pressable, Linking, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
-import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
+import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useRecommendations, ArtistRecommendation } from "../hooks/useRecommendations";
 import { router } from 'expo-router';
 import SearchBar from "./SearchBar";
 import ArtistRecommendationCard from "./ArtistRecommendationCard";
+import { useVenueEvents } from "../hooks/useVenueEvents";
+import RemoteImage from "./RemoteImage";
 
 
 type Venue = {
@@ -39,6 +41,60 @@ type Props = {
 
 // Snap points fixes - on change juste l'index actif
 const SNAP_POINTS = ['30%', '55%'];
+
+function formatEventDate(iso: string | null): string{
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString('fr-FR', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function VenueEventsList({ venueId }: { venueId: string }) {
+  const { events, loading } = useVenueEvents(venueId);
+
+  if (loading) {
+    return (
+      <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+        <ActivityIndicator color="#a78bfa" size="small" />
+      </View>
+    );
+  }
+
+  if (events.length === 0) {
+    return (
+      <>
+        <View style={styles.divider} />
+        <Text style={styles.venueEventsEmpty}>Aucun événement à venir dans ce lieu</Text>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <View style={styles.divider} />
+      <Text style={styles.sectionLabel}>Événements à venir</Text>
+      {events.map(event => (
+        <Pressable
+          key={event.id}
+          style={styles.venueEventRow}
+          onPress={() => router.push(`/(tabs)/screens/event/${event.id}`)}
+        >
+          <RemoteImage uri={event.image_url} size={44} borderRadius={8} />
+          <View style={{ flex: 1}}>
+            <Text style={styles.venueEventName}>
+              {event.artist?.name ?? event.name}
+            </Text>
+            <Text style={styles.venueEventDate}>{formatEventDate(event.starts_at)}</Text>
+          </View>
+        </Pressable>
+      ))}
+    </>
+  );
+}
 
 export default function ExplorerBottomSheet({ selectedVenue, selectedStore, onClose, venueCount, storeCount, onIndexChange, animatedIndex }: Readonly<Props>) {
   const bottomSheetRef = useRef<BottomSheet>(null);
@@ -89,6 +145,7 @@ export default function ExplorerBottomSheet({ selectedVenue, selectedStore, onCl
     onClose();
     bottomSheetRef.current?.snapToIndex(0);
   }
+
 
   function renderContent() {
     if (selectedStore) {
@@ -167,6 +224,8 @@ export default function ExplorerBottomSheet({ selectedVenue, selectedStore, onCl
               <Text style={styles.btnSecondaryText}>Itinéraire</Text>
             </Pressable>
           </View>
+
+          <VenueEventsList venueId={selectedVenue.id} />
         </>
       );
     }
@@ -233,13 +292,14 @@ export default function ExplorerBottomSheet({ selectedVenue, selectedStore, onCl
         if (index === -1) onClose();
       }}
     >
-      <BottomSheetView style={styles.content}>
+      <BottomSheetScrollView 
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
         {(selectedVenue || selectedStore) && (
           <TouchableOpacity
-            onPress={() => {
-              console.log('🔴 close pressed');
-              handleClose();
-            }}
+            onPress={handleClose}
             style={styles.closeBtnAbsolute}
             activeOpacity={0.7}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -249,7 +309,7 @@ export default function ExplorerBottomSheet({ selectedVenue, selectedStore, onCl
         )}
 
         {renderContent()}
-      </BottomSheetView>
+      </BottomSheetScrollView>
     </BottomSheet>
   );
 }
@@ -283,8 +343,11 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   content: {
-    padding: 16,
-    paddingBottom: 32,
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  contentContainer: {
+    paddingBottom: 40,
   },
   venueHeader: {
     flexDirection: 'row',
@@ -452,5 +515,27 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: '#2a2a2a',
     marginBottom: 4,
+  },
+  venueEventsEmpty: {
+    color: '#555555',
+    fontSize: 13,
+    paddingHorizontal: 4,
+    paddingVertical: 12,
+  },
+  venueEventRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 8,
+  },
+  venueEventName: {
+    color: '#e5e5e5',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  venueEventDate: {
+    color: '#555555',
+    fontSize: 12, 
+    marginTop: 2,
   }
 });
