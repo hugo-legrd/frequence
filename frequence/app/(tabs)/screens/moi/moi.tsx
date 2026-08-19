@@ -6,6 +6,7 @@ import { useMyEvents } from '../../../hooks/useMyEvents';
 import * as Haptics from 'expo-haptics';
 import { RefreshControl } from 'react-native-gesture-handler';
 import { MyEventRow } from '../../../../lib/types/profile';
+import RemoteImage from '../../../components/RemoteImage';
 
 
 function formatMemberSince(iso: string): string {
@@ -73,45 +74,6 @@ function FadeInSection({ children, delay = 0 }: { children: React.ReactNode; del
   )
 }
 
-function EventImage({ uri }: { uri: string | null }) {
-  const [loaded, setLoaded] = useState(false);
-  const [failed, setFailed] = useState(false)
-  const opacity = useRef(new Animated.Value(0.3)).current;
-
-  useEffect(() => {
-    if (loaded) return;
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, { toValue: 1, duration: 600, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 0.3, duration: 600, useNativeDriver: true}),
-      ])
-    );
-    anim.start();
-    return () => anim.stop();
-  }, [loaded]);
-
-  if (!uri) {
-    return <View style={styles.eventImagePlaceholder} />;
-  }
-
-  if (failed) return <View style={styles.eventImagePlaceholder} />
-
-  return (
-    <View style={styles.eventImageContainer}>
-      {!loaded && (
-        <Animated.View style={[styles.eventImagePlaceholder, styles.eventImageSkeleton, { opacity }]} />
-      )}
-      <Image 
-        source={{ uri }}
-        style={[styles.eventImagePlaceholder, { position: 'absolute'}]}
-        resizeMode="cover"
-        onLoad={() => setLoaded(true)}
-        onError={() => setFailed(true)}
-      />
-    </View>
-  );
-}
-
 function EventRow({ item, badge }: { item: MyEventRow; badge?: string }) {
   function handlePress() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -122,7 +84,7 @@ function EventRow({ item, badge }: { item: MyEventRow; badge?: string }) {
       style={styles.eventRow}
       onPress={handlePress}
     >
-      <EventImage uri={item.image_url} />
+      <RemoteImage uri={item.image_url} size={48} borderRadius={8} />
       <View style={styles.eventContent}>
         <Text style={styles.eventArtist}>{item.artist_name ?? item.event_name}</Text>
         <Text style={styles.eventMeta}>
@@ -395,21 +357,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     gap: 12,
   }, 
-  eventImageContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  eventImagePlaceholder: {
-    width: 48,
-    height: 48,
-    borderRadius: 8,
-    backgroundColor: '#1e1e1e',
-  },
-  eventImageSkeleton: {
-    position: 'absolute',
-  },
   eventContent: { flex: 1 },
   eventArtist: { fontSize: 15, fontWeight: '500', color: '#e5e5e5' },
   eventMeta: { fontSize: 13, color: '#555555', marginTop: 2 },
