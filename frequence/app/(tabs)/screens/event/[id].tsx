@@ -14,6 +14,7 @@ import { supabase } from '../../../../lib/services/supabase';
 import type { EventDetail, InterestStatus } from '../../../../lib/types/event';
 import VenueMiniMap from '../../../components/MiniMap';
 import * as Haptics from 'expo-haptics';
+import FriendsGoingRow from '../../../components/FriendsGoingRow';
 
 export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -161,6 +162,8 @@ export default function EventDetailScreen() {
           {event.artists && (
             <Text style={styles.artist}>{event.artists.name}</Text>
           )}
+
+          <FriendsGoingRow eventId={id} />
 
           {/* Infos */}
           {event.starts_at && (
