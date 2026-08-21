@@ -1,6 +1,6 @@
-import { useMemo, useRef, useState, useEffect } from 'react';
+import { useMemo, useRef, useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Animated } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useMyProfile } from '../../../hooks/useMyProfile';
 import { useMyEvents } from '../../../hooks/useMyEvents';
 import * as Haptics from 'expo-haptics';
@@ -125,6 +125,13 @@ export default function ProfileScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const { shotRef, share } = useShareProfile();
 
+  useFocusEffect(
+    useCallback(() => {
+      refetchProfile();
+      refetchEvents();
+    }, [])
+  );
+  
   async function onRefresh() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setRefreshing(true);
@@ -204,7 +211,7 @@ export default function ProfileScreen() {
                 Paris · Membre depuis {formatMemberSince(profile.member_since)}
               </Text>
             </View>
-            <Pressable style={styles.editBtn} disabled>
+            <Pressable style={styles.editBtn} onPress={() => router.push('/(tabs)/screens/moi/modifier')}>
               <Text style={styles.editBtnText}>Modifier</Text>
             </Pressable>
           </View>

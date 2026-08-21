@@ -6,6 +6,7 @@ export default function MoiLayout() {
       <Stack.Screen name="moi" />
       <Stack.Screen name="artists" />
       <Stack.Screen name="concerts" />
+      <Stack.Screen name="modifier" />
     </Stack>
   )
 }
