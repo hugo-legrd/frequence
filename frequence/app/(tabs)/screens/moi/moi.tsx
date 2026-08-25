@@ -131,7 +131,7 @@ export default function ProfileScreen() {
       refetchEvents();
     }, [])
   );
-  
+
   async function onRefresh() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setRefreshing(true);
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
     borderColor: '#3a3a3a',
     borderRadius: 8, 
     paddingHorizontal: 12, 
-    paddingVertical: 6,
+    paddingVertical: 8,
   },
   editBtnText: { color: '#555555', fontSize: 13 },
   statsRow: {
