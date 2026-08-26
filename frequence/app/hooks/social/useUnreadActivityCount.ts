@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '../../lib/services/supabase';
+import { supabase } from '../../../lib/services/supabase';
 
 const LAST_SEEN_KEY = 'friends_last_seen_at';
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../../lib/services/supabase';
-import type { FriendsPick } from '../../lib/types/home';
+import { supabase } from '../../../lib/services/supabase';
+import type { FriendsPick } from '../../../lib/types/home';
 
 export function useHomeFriendsPick() {
   const [pick, setPick] = useState<FriendsPick | null>(null);

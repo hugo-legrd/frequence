@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../../lib/services/supabase';
-import { getArtistImage } from '../../lib/services/deezer';
+import { supabase } from '../../../lib/services/supabase';
+import { getArtistImage } from '../../../lib/services/deezer';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type MyArtistRow = {

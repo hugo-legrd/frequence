@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../../lib/services/supabase';
-import type { PublicProfile } from '../../lib/types/publicProfile';
+import { supabase } from '../../../lib/services/supabase';
+import type { PublicProfile } from '../../../lib/types/publicProfile';
 
 export function usePublicProfile(userId: string) {
   const [profile, setProfile] = useState<PublicProfile | null>(null);

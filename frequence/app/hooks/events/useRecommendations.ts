@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '../../lib/services/supabase';
+import { supabase } from '../../../lib/services/supabase';
 import {
   getArtistTopTags,
   getSimilarArtists,
   getTopArtistsByTag,
   LastFmArtist,
-} from '../../lib/services/lastfm';
-import { getArtistImage } from '../../lib/services/deezer';
+} from '../../../lib/services/lastfm';
+import { getArtistImage } from '../../../lib/services/deezer';
 
 const CACHE_KEY = 'ecommendations_cache';
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24h

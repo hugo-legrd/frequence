@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { supabase } from '../../lib/services/supabase';
-import type { FriendActivityRow } from '../../lib/types/activity';
+import { supabase } from '../../../lib/services/supabase';
+import type { FriendActivityRow } from '../../../lib/types/activity';
 
 export function useFriendsActivity() {
   const [activity, setActivity] = useState<FriendActivityRow[]>([]);

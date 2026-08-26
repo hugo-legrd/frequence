@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../../lib/services/supabase';
-import type { FriendGoing } from '../../lib/types/friendsGoing';
+import { supabase } from '../../../lib/services/supabase';
+import type { FriendGoing } from '../../../lib/types/friendsGoing';
 
 export function useFriendsGoing(eventId: string) {
   const [friends, setFriends] = useState<FriendGoing[]>([]);

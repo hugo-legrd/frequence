@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../../lib/services/supabase';
-import type { MyEventRow } from '../../lib/types/profile';
+import { supabase } from '../../../lib/services/supabase';
+import type { MyEventRow } from '../../../lib/types/profile';
 
 export function useMyEvents() {
   const [events, setEvents] = useState<MyEventRow[]>([]);

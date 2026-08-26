@@ -1,6 +1,6 @@
 // hooks/useVenueEvents.ts
 import { useEffect, useState } from 'react';
-import { supabase } from '../../lib/services/supabase';
+import { supabase } from '../../../lib/services/supabase';
 
 export type VenueEvent = {
   id: string;

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { supabase } from "../../lib/services/supabase";
-import type { LatestEvent } from "../../lib/types/home";
+import { supabase } from "../../../lib/services/supabase";
+import type { LatestEvent } from "../../../lib/types/home";
 
 export function useLatestEvents() {
   const [events, setEvents] = useState<LatestEvent[]>([]);

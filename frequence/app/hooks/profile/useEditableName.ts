@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../../lib/services/supabase';
+import { supabase } from '../../../lib/services/supabase';
 
 export function useEditableName() {
   const [firstName, setFirstName] = useState('');

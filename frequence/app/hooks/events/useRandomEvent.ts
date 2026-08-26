@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../../lib/services/supabase';
-import type { RandomEvent } from '../../lib/types/home';
+import { supabase } from '../../../lib/services/supabase';
+import type { RandomEvent } from '../../../lib/types/home';
 
 export function useRandomEvent() {
   const [event, setEvent] = useState<RandomEvent | null>(null);

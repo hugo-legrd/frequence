@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { supabase } from "../../lib/services/supabase";
-import type { GenreOption } from "../../lib/types/editProfile";
+import { supabase } from "../../../lib/services/supabase";
+import type { GenreOption } from "../../../lib/types/editProfile";
 
 export function useEditableGenres() {
   const [genres, setGenres] = useState<GenreOption[]>([]);

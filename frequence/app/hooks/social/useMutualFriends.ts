@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "../../lib/services/supabase";
+import { supabase } from "../../../lib/services/supabase";
 
 export type MutualFriend = { id: string; display_name: string };
 
