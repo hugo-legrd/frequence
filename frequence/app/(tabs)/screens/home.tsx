@@ -8,10 +8,11 @@ import { useHomeFriendsPick } from '../../hooks/useHomeFriendsPick';
 import { useLatestEvents } from '../../hooks/useLatestEvents';
 import RemoteImage from '../../components/RemoteImage';
 import { useTheme } from '../../../lib/theme/ThemeContext';
+import type { ThemeColors } from '../../../lib/theme/tokens';
 
-function SectionTitle({ title }: { title: string, color: string}) {
+function SectionTitle({ title, color }: { title: string, color: string}) {
   return (
-    <Text style={styles.sectionTitleBase, { color }}>
+    <Text style={[styles_sectionTitleBase, { color }]}>
       {title}
     </Text>
   );
@@ -36,7 +37,19 @@ function formatEventDateTime(iso: string | null): string {
 
 const FILTERS = ['Près de moi', 'Ce soir', 'Gratuit'] as const;
 
+const styles_sectionTitleBase = {
+  fontSize: 12,
+  fontWeight: '600' as const,
+  letterSpacing: 0.3,
+  marginTop: 20,
+  marginBottom: 9,
+  paddingHorizontal: 20,
+};
+
 export default function HomeScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set(['Près de moi']));
   const { event: randomEvent, loading: eventLoading } = useRandomEvent();
   const { pick: friendsPick, loading: friendsLoading } = useHomeFriendsPick();
@@ -95,7 +108,7 @@ export default function HomeScreen() {
 
         {!eventLoading && randomEvent && (
           <>
-            <SectionTitle title="RECOMMANDÉ POUR TOI" />
+            <SectionTitle title="RECOMMANDÉ POUR TOI" color={colors.textMuted} />
             <Pressable
               style={styles.recommendedCard}
               onPress={() => router.push(`/(tabs)/screens/event/${randomEvent.event_id}`)}
@@ -130,7 +143,7 @@ export default function HomeScreen() {
         {/* Friends */}
         {!friendsLoading && friendsPick && (
           <>
-            <SectionTitle title="AMIS INTÉRESSÉS" />
+            <SectionTitle title="AMIS INTÉRESSÉS" color={colors.textMuted} />
             <Pressable
               style={styles.friendCard}
               onPress={() => router.push(`/(tabs)/screens/event/${friendsPick.event_id}`)}
@@ -166,7 +179,7 @@ export default function HomeScreen() {
         {/* New releases */}
         {!latestLoading && latestsEvents.length > 0 && (
           <>
-            <SectionTitle title="NOUVEAUTÉS" />
+            <SectionTitle title="NOUVEAUTÉS" color={colors.textMuted} />
             <View style={styles.newEvents}>
               {latestsEvents.map(item => (
                 <Pressable
@@ -195,183 +208,185 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0f0f0f',
-  },
-  content: {
-    paddingBottom: 24,
-  },
-  header: {
-    height: 88,
-    paddingHorizontal: 20,
-    paddingTop: 28,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  logo: {
-    fontSize: 30,
-    fontWeight: '600',
-    color: '#e5e5e5',
-    letterSpacing: -1,
-  },
-  profileButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#2a2a2a',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  profileIcon: {
-    fontSize: 20,
-    color: '#a78bfa',
-    marginTop: -8,
-  },
-  filters: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    gap: 10,
-    marginBottom: 16,
-  },
-  filter: {
-    height: 34,
-    paddingHorizontal: 15,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#444444',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  filterActive: {
-    backgroundColor: '#e5e5e5',
-    borderColor: '#e5e5e5',
-  },
-  filterText: {
-    fontSize: 13,
-    color: '#b5b5b5',
-    fontWeight: '500',
-  },
-  filterTextActive: {
-    color: '#0f0f0f',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#242424',
-    marginBottom: 4,
-  },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#777777',
-    letterSpacing: 0.3,
-    marginTop: 20,
-    marginBottom: 9,
-    paddingHorizontal: 20,
-  },
-  sectionLoading: { paddingVertical: 30, alignItems: 'center' },
-  recommendedCard: {
-    marginHorizontal: 20,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#444444',
-    overflow: 'hidden',
-    backgroundColor: '#171717',
-  },
-  largeImagePlaceholder: {
-    height: 145,
-    width: '100%',
-    backgroundColor: '#1e1e1e',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  placeholderText: {
-    fontSize: 14,
-    fontStyle: 'italic',
-    color: '#555555',
-  },
-  recommendedContent: {
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-  },
-  artistName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#e5e5e5',
-    marginBottom: 4,
-  },
-  eventMeta: {
-    fontSize: 14,
-    color: '#777777',
-  },
-  friendCard: {
-    marginHorizontal: 20,
-    height: 78,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#444444',
-    backgroundColor: '#171717',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-  },
-  avatarGroup: {
-    width: 60,
-    height: 48,
-    position: 'relative',
-    justifyContent: 'center',
-  },
-  avatar: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    position: 'absolute',
-    borderWidth: 2,
-    borderColor: '#171717',
-    backgroundColor: '#444444',
-  },
-  avatarOne: {
-    left: 0,
-  },
-  avatarTwo: {
-    left: 22,
-    backgroundColor: '#555555',
-  },
-  avatarInitial: { fontSize: 13, fontWeight: '600', color: '#e5e5e5' },
-  friendInfo: {
-    marginLeft: 8,
-    flex: 1,
-  },
-  friendArtist: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#e5e5e5',
-    marginBottom: 3,
-  },
-  friendMeta: {
-    fontSize: 12,
-    color: '#777777',
-  },
-  newEvents: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingHorizontal: 20,
-  },
-  smallCard: {
-    flex: 1,
-    height: 130,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  smallImagePlaceholder: {
-    flex: 1,
-    backgroundColor: '#1e1e1e',
-    borderWidth: 1,
-    borderColor: '#333333',
-    borderRadius: 16,
-    width: '100%', 
-    height: '100%'
-  }
-})
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bg,
+    },
+    content: {
+      paddingBottom: 24,
+    },
+    header: {
+      height: 88,
+      paddingHorizontal: 20,
+      paddingTop: 28,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    logo: {
+      fontSize: 30,
+      fontWeight: '600',
+      color: colors.text,
+      letterSpacing: -1,
+    },
+    profileButton: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.surface,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    profileIcon: {
+      fontSize: 20,
+      color: colors.accent,
+      marginTop: -8,
+    },
+    filters: {
+      flexDirection: 'row',
+      paddingHorizontal: 20,
+      gap: 10,
+      marginBottom: 16,
+    },
+    filter: {
+      height: 34,
+      paddingHorizontal: 15,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: colors.divider,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    filterActive: {
+      backgroundColor: colors.text,
+      borderColor: colors.text,
+    },
+    filterText: {
+      fontSize: 13,
+      color: colors.textMuted,
+      fontWeight: '500',
+    },
+    filterTextActive: {
+      color: colors.bg,
+    },
+    divider: {
+      height: 1,
+      backgroundColor: colors.divider,
+      marginBottom: 4,
+    },
+    sectionTitle: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.textMuted,
+      letterSpacing: 0.3,
+      marginTop: 20,
+      marginBottom: 9,
+      paddingHorizontal: 20,
+    },
+    sectionLoading: { paddingVertical: 30, alignItems: 'center' },
+    recommendedCard: {
+      marginHorizontal: 20,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: colors.divider,
+      overflow: 'hidden',
+      backgroundColor: colors.surface,
+    },
+    largeImagePlaceholder: {
+      height: 145,
+      width: '100%',
+      backgroundColor: colors.surface,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    placeholderText: {
+      fontSize: 14,
+      fontStyle: 'italic',
+      color: colors.textMuted,
+    },
+    recommendedContent: {
+      paddingHorizontal: 14,
+      paddingVertical: 14,
+    },
+    artistName: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: colors.text,
+      marginBottom: 4,
+    },
+    eventMeta: {
+      fontSize: 14,
+      color: colors.textMuted,
+    },
+    friendCard: {
+      marginHorizontal: 20,
+      height: 78,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: colors.divider,
+      backgroundColor: colors.surface,
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 14,
+    },
+    avatarGroup: {
+      width: 60,
+      height: 48,
+      position: 'relative',
+      justifyContent: 'center',
+    },
+    avatar: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      position: 'absolute',
+      borderWidth: 2,
+      borderColor: colors.surface,
+    },
+    avatarOne: {
+      left: 0,
+      backgroundColor: colors.accentRamp[600],
+    },
+    avatarTwo: {
+      left: 22,
+      backgroundColor: colors.accentRamp[700],
+    },
+    avatarInitial: { fontSize: 13, fontWeight: '600', color: colors.accentRamp[100] },
+    friendInfo: {
+      marginLeft: 8,
+      flex: 1,
+    },
+    friendArtist: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.text,
+      marginBottom: 3,
+    },
+    friendMeta: {
+      fontSize: 12,
+      color: colors.textMuted,
+    },
+    newEvents: {
+      flexDirection: 'row',
+      gap: 12,
+      paddingHorizontal: 20,
+    },
+    smallCard: {
+      flex: 1,
+      height: 130,
+      borderRadius: 16,
+      overflow: 'hidden',
+    },
+    smallImagePlaceholder: {
+      flex: 1,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.divider,
+      borderRadius: 16,
+      width: '100%', 
+      height: '100%'
+    }
+  })
+} 

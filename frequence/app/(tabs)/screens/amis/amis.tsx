@@ -4,6 +4,8 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Refre
 import { useFriendsActivity } from '../../../hooks/useFriendsActivity';
 import type { FriendActivityRow } from '../../../../lib/types/activity';
 import { useUnreadActivity } from '../../context/UnreadActivityContext';
+import { useTheme } from '../../../../lib/theme/ThemeContext';
+import type { ThemeColors } from '../../../../lib/theme/tokens';
 
 function timeAgo(isoDate: string): string {
   const diffMs = Date.now() - new Date(isoDate).getTime();
@@ -47,6 +49,9 @@ function groupByDay(rows: FriendActivityRow[]) {
 }
 
 function ActivityRow({ item }: { item: FriendActivityRow }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const name = item.actor_display_name ?? 'Quelqu\'un'
   const initial = name.charAt(0).toUpperCase();
   const verb = item.status === 'interested' ? 'est interéssé par' : 'va à';
@@ -79,6 +84,9 @@ function ActivityRow({ item }: { item: FriendActivityRow }) {
 }
 
 export default function FriendsScreen() {
+  const  { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const { activity, loading, refetch } = useFriendsActivity();
   const [refreshing, setRefreshing] = useState(false);
   const groups = useMemo(() => groupByDay(activity), [activity]);
@@ -154,15 +162,16 @@ export default function FriendsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0f0f',
+    backgroundColor: colors.bg,
   },
   header: {
     paddingHorizontal: 16,
     paddingBottom: 16,
-    backgroundColor: '#0f0f0f'
+    backgroundColor: colors.bg
   },
   headerTop: {
     flexDirection: 'row',
@@ -172,11 +181,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 36,
     fontWeight: '500',
-    color: '#e5e5e5',
+    color: colors.text,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#555555',
+    color: colors.textMuted,
     marginTop: 2,
   },
   searchBtn: {
@@ -191,12 +200,12 @@ const styles = StyleSheet.create({
   },
   searchIcon: {
     fontSize: 30,
-    color: '#a78bfa'
+    color: colors.accent,
   },
   sectionLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#555555',
+    color: colors.textMuted,
     letterSpacing: 0.5,
     paddingHorizontal: 16,
     paddingTop: 20,
@@ -213,21 +222,21 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#1e1e1e',
+    backgroundColor: colors.divider,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#a78bfa',
+    color: colors.accent,
   },
   rowContent: {
     flex: 1,
   },
   title: {
     fontSize: 15,
-    color: '#e5e5e5',
+    color: colors.text,
     lineHeight: 20,
   },
   bold: {
@@ -235,14 +244,14 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 13,
-    color: '#555555',
+    color: colors.textMuted,
     marginTop: 2,
   },
   unreadDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#a78bfa',
+    backgroundColor: colors.accent,
     marginTop: 6,
   },
   scrollContent: {
@@ -257,4 +266,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 999,
   },
-});
+})
+};

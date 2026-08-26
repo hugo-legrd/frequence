@@ -1,12 +1,17 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useEditableGenres } from "../../../hooks/useEditableGenres";
 import { useEditableName } from "../../../hooks/useEditableName";
 import { supabase } from "../../../../lib/services/supabase";
+import { useTheme } from '../../../../lib/theme/ThemeContext';
+import type { ThemeColors } from '../../../../lib/theme/tokens';
 
 export default function EditProfileScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const { genres, loading: genresLoading, toggleGenre } = useEditableGenres();
   const { firstName, setFirstName, lastName, setLastName,
     loading: nameLoading, saving: nameSaving, save: saveName
@@ -100,8 +105,9 @@ export default function EditProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0f0f0f'},
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg},
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -112,37 +118,37 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     width: 35, height: 36, borderRadius: 18,
-    backgroundColor: '#171717', justifyContent: 'center', alignItems: 'center',
+    backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center',
   },
-  backArrow: { color: '#e5e5e5', fontSize: 18 },
-  title: { fontSize: 20, fontWeight: '600', color: '#e5e5e5'},
+  backArrow: { color: colors.text, fontSize: 18 },
+  title: { fontSize: 20, fontWeight: '600', color: colors.text},
   scrollContent: { paddingHorizontal: 16, paddingBottom: 60 },
   sectionLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#555555',
+    color: colors.textMuted,
     letterSpacing: 0.5,
     marginTop: 24,
     marginBottom: 12,
   },
   nameBlock: { gap: 10 },
   input: {
-    backgroundColor: '#171717',
+    backgroundColor: colors.surface,
     borderRadius: 10,
     padding: 12,
-    color: '#e5e5e5',
+    color: colors.text,
     fontSize: 14,
   },
   saveBtn: {
-    backgroundColor: 'rgba(167,139,250,0.15)',
+    backgroundColor: colors.accentSoftBg,
     borderWidth: 1,
-    borderColor: 'rgba(167,139,250,0.3)',
+    borderColor: colors.accentSoftBorder,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
     marginTop: 4,
   },
-  saveBtnText: { color: '#a78bfa', fontSize: 14, fontWeight: '600' },
+  saveBtnText: { color: colors.accent, fontSize: 14, fontWeight: '600' },
   genresGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -150,28 +156,29 @@ const styles = StyleSheet.create({
   },
   genrePill: {
     borderWidth: 1,
-    borderColor: '#3a3a3a',
+    borderColor: colors.textMuted,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
   genrePillActive: {
-    backgroundColor: '#a78bfa',
-    borderColor: '#a78bfa',
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   genrePillText: {
-    color: '#e5e5e5', fontSize: 13, fontWeight: '500' 
+    color: colors.text, fontSize: 13, fontWeight: '500' 
   },
   genrePillTextActive: {
-    color: '#0f0f0f',
+    color: colors.bg,
   },
   logoutBtn: {
     marginTop: 40,
     borderWidth: 1,
-    borderColor: '#3a2a2a',
+    borderColor: colors.accentSoftBorder,
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
   },
   logoutBtnText: { color: '#f87171', fontSize: 14, fontWeight: '600' },
-});
+  })
+};

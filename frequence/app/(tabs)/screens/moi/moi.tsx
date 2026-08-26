@@ -11,6 +11,8 @@ import ViewShot from 'react-native-view-shot';
 import ProfileShareCard from '../../../components/ProfileShareCard';
 import { useShareProfile } from '../../../hooks/useShareProfile';
 import { useMyArtists } from '../../../hooks/useMyArtists';
+import { useTheme } from '../../../../lib/theme/ThemeContext';
+import type { ThemeColors } from '../../../../lib/theme/tokens';
 
 
 function formatMemberSince(iso: string): string {
@@ -26,6 +28,8 @@ function formatEventDate(iso: string | null): string {
 }
 
 function ProfileSkeleton() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const opacity = useRef(new Animated.Value(0.3)).current;
   useEffect(() => {
     const anim = Animated.loop(
@@ -91,6 +95,8 @@ function groupPastEventsByYear(events: MyEventRow[]) {
 
 
 function EventRow({ item, badge }: { item: MyEventRow; badge?: string }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   function handlePress() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push(`/(tabs)/screens/event/${item.event_id}`);
@@ -119,6 +125,9 @@ function EventRow({ item, badge }: { item: MyEventRow; badge?: string }) {
 }
 
 export default function ProfileScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const { profile, loading: profileLoading, refetch: refetchProfile } = useMyProfile();
   const { events, loading: eventsLoading, refetch: refetchEvents } = useMyEvents();
   const { artists } = useMyArtists();
@@ -342,10 +351,11 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0f0f0f' },
-  center: { flex: 1, backgroundColor: '#0f0f0f', justifyContent: 'center', alignItems: 'center' },
-  empty: { color: '#555555', fontSize: 14 },
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg },
+  center: { flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center' },
+  empty: { color: colors.textMuted, fontSize: 14 },
   scrollContent: { paddingTop: 60, paddingBottom: 40 },
   profileHeader: {
     flexDirection: 'row',
@@ -361,10 +371,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  avatarText: { fontSize: 26, fontWeight: '600', color: '#a78bfa' },
+  avatarText: { fontSize: 26, fontWeight: '600', color: colors.accent },
   profileInfo: { flex: 1 },
-  name: { fontSize: 20, fontWeight: '600', color: '#e5e5e5' },
-  location: { fontSize: 13, color: '#555555', marginTop: 4 },
+  name: { fontSize: 20, fontWeight: '600', color: colors.text },
+  location: { fontSize: 13, color: colors.textMuted, marginTop: 4 },
   editBtn: {
     borderWidth: 1,
     borderColor: '#3a3a3a',
@@ -372,24 +382,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12, 
     paddingVertical: 8,
   },
-  editBtnText: { color: '#555555', fontSize: 13 },
+  editBtnText: { color: colors.textMuted, fontSize: 13 },
   statsRow: {
     flexDirection: 'row',
     marginTop: 24,
     marginHorizontal: 16,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: '#1e1e1e',
+    borderColor: colors.divider,
     paddingVertical: 16,
   },
   statBlock: { flex: 1, alignItems: 'center'},
-  statDivider: { width: 1, backgroundColor: '#1e1e1e'},
-  statValue: { fontSize: 18, fontWeight: '600', color: '#e5e5e5'},
-  statLabel: { fontSize: 12, color: '#555555', marginTop: 4 },
+  statDivider: { width: 1, backgroundColor: colors.divider},
+  statValue: { fontSize: 18, fontWeight: '600', color: colors.text},
+  statLabel: { fontSize: 12, color: colors.textMuted, marginTop: 4 },
   sectionLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#555555',
+    color: colors.textMuted,
     letterSpacing: 0.5,
     paddingHorizontal: 16,
     paddingTop: 24,
@@ -402,12 +412,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   genrePill: {
-    backgroundColor: '#171717',
+    backgroundColor: colors.surface,
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 8,
   },
-  genrePillText: { color: '#e5e5e5', fontSize: 13, fontWeight: '500' },
+  genrePillText: { color: colors.text, fontSize: 13, fontWeight: '500' },
   eventRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -416,8 +426,8 @@ const styles = StyleSheet.create({
     gap: 12,
   }, 
   eventContent: { flex: 1 },
-  eventArtist: { fontSize: 15, fontWeight: '500', color: '#e5e5e5' },
-  eventMeta: { fontSize: 13, color: '#555555', marginTop: 2 },
+  eventArtist: { fontSize: 15, fontWeight: '500', color: colors.text },
+  eventMeta: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
   badgePill: {
     borderWidth: 1,
     borderColor: '#3a3a3a',
@@ -425,15 +435,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
-  badgePillText: { color: '#a78bfa', fontSize: 12, fontWeight: '500' },
+  badgePillText: { color: colors.accent, fontSize: 12, fontWeight: '500' },
   emptyState: {
     alignItems: 'center',
     paddingTop: 40,
     paddingHorizontal: 32,
   },
-  emptyTitle: { color: '#e5e5e5', fontSize: 16, fontWeight: '600'},
+  emptyTitle: { color: colors.text, fontSize: 16, fontWeight: '600'},
   emptySub: {
-    color: '#555555',
+    color: colors.textMuted,
     fontSize: 13,
     textAlign: 'center',
     marginTop: 6,
@@ -441,14 +451,14 @@ const styles = StyleSheet.create({
   },
   emptyBtn: {
     borderWidth: 1,
-    borderColor: '#a78bfa',
+    borderColor: colors.accent,
     borderRadius: 10,
     paddingHorizontal: 20,
     paddingVertical: 10,
   },
-  emptyBtnText: { color: '#a78bfa', fontSize: 14, fontWeight: '600' },
+  emptyBtnText: { color: colors.accent, fontSize: 14, fontWeight: '600' },
   genresEmptyText: {
-    color: '#555555',
+    color: colors.textMuted,
     fontSize: 13,
     paddingHorizontal: 16,
   },
@@ -456,11 +466,11 @@ const styles = StyleSheet.create({
     height: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0f0f0f'
+    backgroundColor: colors.bg,
   },
-  skeletonBlock: { backgroundColor:  "#1e1e1e" },
+  skeletonBlock: { backgroundColor:  colors.divider },
   skeletonLine: {
-    backgroundColor: '#1e1e1e',
+    backgroundColor: colors.divider,
     borderRadius: 4,
   },
   yearGroup: { marginBottom: 8 },
@@ -475,16 +485,16 @@ const styles = StyleSheet.create({
     width: 3,
     height: 16,
     borderRadius: 2,
-    backgroundColor: '#a78bfa',
+    backgroundColor: colors.accent,
   },
   yearLabel: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#e5e5e5',
+    color: colors.text,
   },
   yearCount: {
     fontSize: 12,
-    color: '#555555',
+    color: colors.textMuted,
     marginLeft: 'auto',
   },
   shareBtn: {
@@ -497,11 +507,12 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
   },
-  shareBtnText: { color: '#a78bfa', fontSize: 14, fontWeight: '600' },
+  shareBtnText: { color: colors.accent, fontSize: 14, fontWeight: '600' },
   hiddenShotContainer: {
     position: 'absolute',
     top: -9999,
     left: -9999,
     opacity: 0,
   }
-});
+})
+};

@@ -3,10 +3,15 @@ import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator } from '
 import { router } from 'expo-router';
 import { useMyEvents } from '../../../hooks/useMyEvents';
 import RemoteImage from '../../../components/RemoteImage';
+import { useTheme } from '../../../../lib/theme/ThemeContext';
+import { ThemeColors } from '../../../../lib/theme/tokens';
 
 type Filter = 'upcoming' | 'past';
 
 export default function MyConcertsScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const { events, loading } = useMyEvents();
   const [filter, setFilter] = useState<Filter>('upcoming');
 
@@ -69,8 +74,9 @@ export default function MyConcertsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0f0f0f'},
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg},
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -81,21 +87,22 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#171717', justifyContent: 'center', alignItems: 'center',
+    backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center',
   },
-  backArrow: { color: '#e5e5e5', fontSize: 18 },
-  title: { fontSize: 20, fontWeight: '600', color: '#e5e5e5' } ,
+  backArrow: { color: colors.text, fontSize: 18 },
+  title: { fontSize: 20, fontWeight: '600', color: colors.text } ,
   tabs: { flexDirection: 'row', paddingHorizontal: 16, gap: 8, marginBottom: 8},
   tab: {
     paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20,
-    backgroundColor: '#171717',
+    backgroundColor: colors.text,
   },
-  tabActive: { backgroundColor: 'rgba(167,139,250,0.15'},
-  tabText: { color: '#555555', fontSize: 13, fontWeight: '500'},
-  tabTextActive: { color: '#a78bfa' },
+  tabActive: { backgroundColor: colors.accentSoftBg},
+  tabText: { color: colors.textMuted, fontSize: 13, fontWeight: '500'},
+  tabTextActive: { color: colors.accent },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 12},
-  imagePlaceholder: { width: 48, height: 48, borderRadius: 8, backgroundColor: '#1e1e1e' },
-  artist: { color: '#e5e5e5', fontSize: 15, fontWeight: '500' },
-  meta: { color: '#555555', fontSize: 13, marginTop: 2 },
-  empty: { color: '#555555', fontSize: 14, textAlign: 'center', marginTop: 40},
-});
+  imagePlaceholder: { width: 48, height: 48, borderRadius: 8, backgroundColor: colors.divider },
+  artist: { color: colors.text, fontSize: 15, fontWeight: '500' },
+  meta: { color: colors.textMuted, fontSize: 13, marginTop: 2 },
+  empty: { color: colors.textMuted, fontSize: 14, textAlign: 'center', marginTop: 40},
+})
+};

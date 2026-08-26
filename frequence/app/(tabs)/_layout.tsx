@@ -1,11 +1,13 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { UnreadActivityProvider, useUnreadActivity } from './context/UnreadActivityContext';
+import { ThemeProvider, useTheme } from '../../lib/theme/ThemeContext';
 
 function TabsLayout() {
   const { count } = useUnreadActivity();
 
   return (
+    <ThemeProvider>
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -57,6 +59,7 @@ function TabsLayout() {
         options={{ href: null}}
       />
     </Tabs>
+    </ThemeProvider>
   );
 }
 

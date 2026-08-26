@@ -1,17 +1,21 @@
 import { View, Text, FlatList, ActivityIndicator, StyleSheet, Image, Pressable } from 'react-native';
 import { useEvents } from '../../hooks/useEvents';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import FilterBar, { Filters } from '../../components/FilterBar';
+import { useTheme } from '../../../lib/theme/ThemeContext';
+import type { ThemeColors } from '../../../lib/theme/tokens';
 
 export default function ConcertsScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [filters, setFilters] = useState<Filters>({ date: 'all', genres: []});
   const { events, loading, loadingMore, error, hasMore, loadMore } = useEvents(filters);
 
   if (loading) {
     return(
       <View style={styles.center}>
-        <ActivityIndicator color="#a78bfa" />
+        <ActivityIndicator color={colors.accent} />
       </View>
     );
   }
@@ -89,7 +93,7 @@ export default function ConcertsScreen() {
         ListFooterComponent={
           loadingMore ? (
             <View style={{ padding: 16, alignItems: 'center' }}>
-              <ActivityIndicator color="#a78bfa" />
+              <ActivityIndicator color={colors.accent} />
             </View>
           ) : null
         } 
@@ -97,21 +101,22 @@ export default function ConcertsScreen() {
       />
       {loading && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator color='#a78bfa' />
+          <ActivityIndicator color={colors.accent} />
         </View>
       )}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0f0f',
+    backgroundColor: colors.bg,
   },
   center: {
     flex: 1,
-    backgroundColor: '#0f0f0f',
+    backgroundColor: colors.bg,
     justifyContent: 'center',
     padding: 40,
     paddingTop: 60,
@@ -122,7 +127,7 @@ const styles = StyleSheet.create({
     paddingTop: 60,
   },
   card: {
-    backgroundColor: '#171717',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -137,20 +142,20 @@ const styles = StyleSheet.create({
   imagePlaceholder: {
     width: '100%',
     height: 160,
-    backgroundColor: '#1e1e1e',
+    backgroundColor: colors.divider,
   },
   eventName: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#e5e5e5',
+    color: colors.text,
   },
   artist: {
     fontSize: 14,
-    color: '#a78bfa'
+    color: colors.accent
   },
   meta: {
     fontSize: 13,
-    color: '#555555',
+    color: colors.textMuted,
   },
   date: {
     fontSize: 12,
@@ -162,7 +167,7 @@ const styles = StyleSheet.create({
   },
   empty: {
     fontSize: 13,
-    color: '#555555',
+    color: colors.textMuted,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -177,15 +182,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
     justifyContent: 'space-between',
-    backgroundColor: '#0f0f0f',
+    backgroundColor: colors.bg,
   },
   screenTitle: {
     fontSize: 36,
     fontWeight: '500',
-    color: '#e5e5e5',
+    color: colors.text,
   },
   screenLocation: {
     fontSize: 14,
-    color: '#e5e5e5',
+    color: colors.text,
   }
-});
+})
+};

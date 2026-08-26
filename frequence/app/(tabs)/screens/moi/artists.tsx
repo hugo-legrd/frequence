@@ -1,9 +1,15 @@
 import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
+import { useMemo } from 'react';
 import { useMyArtists } from '../../../hooks/useMyArtists';
 import RemoteImage from '../../../components/RemoteImage';
+import { useTheme } from '../../../../lib/theme/ThemeContext';
+import type { ThemeColors } from '../../../../lib/theme/tokens';
 
 export default function MyArtistsScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const { artists, loading } = useMyArtists();
 
   return (
@@ -40,21 +46,23 @@ export default function MyArtistsScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0f0f0f' },
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg },
   header: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 16, paddingTop: 60, paddingBottom: 16, gap: 12,
   },
   backBtn: {
     width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#171717', justifyContent: 'center', alignItems: 'center',
+    backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center',
   },
-  backArrow: { color: '#e5e5e5', fontSize: 18 },
-  title: { fontSize: 20, fontWeight: '600', color: '#e5e5e5' },
+  backArrow: { color: colors.text, fontSize: 18 },
+  title: { fontSize: 20, fontWeight: '600', color: colors.text },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 12},
-  imagePlaceholder: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#1e1e1e'},
-  name: { color: '#e5e5e5', fontSize: 15, fontWeight: '500' },
-  meta: { color: '#555555', fontSize: 13, marginTop: 2 },
-  empty: { color: '#555555', fontSize: 14, textAlign: 'center', marginTop: 40},
-});
+  imagePlaceholder: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.divider},
+  name: { color: colors.text, fontSize: 15, fontWeight: '500' },
+  meta: { color: colors.textMuted, fontSize: 13, marginTop: 2 },
+  empty: { color: colors.textMuted, fontSize: 14, textAlign: 'center', marginTop: 40},
+})
+};

@@ -1,11 +1,17 @@
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
+import { useMemo } from 'react';
 import { usePublicProfile } from '../../../hooks/usePublicProfile';
 import { useFollow } from '../../../hooks/useFollow';
 import { useMutualFriends } from '../../../hooks/useMutualFriends';
 import * as Haptics from 'expo-haptics';
+import { useTheme } from '../../../../lib/theme/ThemeContext';
+import type { ThemeColors } from '../../../../lib/theme/tokens';
 
 export default function PublicProfileScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const { userId } = useLocalSearchParams<{ userId: string }>();
   const { profile, loading, setProfile } = usePublicProfile(userId);
   const { follow, unfollow, loading: followLoading } = useFollow();
@@ -97,10 +103,11 @@ export default function PublicProfileScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0f0f0f'},
-  center: { flex: 1, backgroundColor: '#0f0f0f', justifyContent: 'center', alignItems: 'center'},
-  empty: { color: '#555555', fontSize: 14},
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg},
+  center: { flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center'},
+  empty: { color: colors.textMuted, fontSize: 14},
   backBtn: {
     position: 'absolute',
     top: 60,
@@ -109,11 +116,11 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#171717',
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  backArrow: { color: '#e5e5e5', fontSize: 18 },
+  backArrow: { color: colors.text, fontSize: 18 },
   header: {
     alignItems: 'center',
     paddingTop: 100,
@@ -123,32 +130,33 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(1667,139,250,0.15)',
+    backgroundColor: colors.accentSoftBg,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
   },
-  avatarText: { fontSize: 28, fontWeight: '600', color: '#a78bfa'},
-  name: { fontSize: 20, fontWeight: '600', color: '#e5e5e5'},
+  avatarText: { fontSize: 28, fontWeight: '600', color: colors.accent},
+  name: { fontSize: 20, fontWeight: '600', color: colors.text},
   statsRow: { flexDirection: 'row', gap: 32, marginTop: 16, marginBottom: 20 },
   stat: { alignItems: 'center' },
-  statValue: { fontSize: 18, fontWeight: '600', color: '#e5e5e5' },
-  statLabel: { fontSize: 12, color: '#555555', marginTop: 2},
+  statValue: { fontSize: 18, fontWeight: '600', color: colors.text },
+  statLabel: { fontSize: 12, color: colors.textMuted, marginTop: 2},
   followBtn: {
     borderWidth: 1, 
-    borderColor: '#a78bfa', 
+    borderColor: colors.accent, 
     borderRadius: 10, 
     paddingHorizontal: 24, 
     paddingVertical: 10, 
   },
-  followBtnActive: { backgroundColor: '#a78bfa' },
-  followBtnText: { color: '#a78bfa', fontSize: 14, fontWeight: '600'},
-  followBtnTextActive: { color: '#0f0f0f' },
+  followBtnActive: { backgroundColor: colors.accent },
+  followBtnText: { color: colors.accent, fontSize: 14, fontWeight: '600'},
+  followBtnTextActive: { color: colors.bg },
   mutualsText: {
     fontSize: 13,
-    color: '#555555',
+    color: colors.textMuted,
     marginTop: 16,
     textAlign: 'center',
     paddingHorizontal: 24
   }
-});
+})
+};

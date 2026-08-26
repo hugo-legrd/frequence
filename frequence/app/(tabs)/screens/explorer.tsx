@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,8 @@ import * as Location from 'expo-location';
 import { supabase } from '../../../lib/services/supabase';
 import ExplorerBottomSheet from '../../components/ExplorerBottomSheet';
 import { useRecommendations } from '../../hooks/useRecommendations';
+import { useTheme } from '../../../lib/theme/ThemeContext';
+import type { ThemeColors } from '../../../lib/theme/tokens';
 
 type Venue = {
   id: string;
@@ -35,6 +37,8 @@ type Store = {
 }
 
 export default function ExplorerScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   // Position GPS de l'utilisateur
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   // true si l'utilisateur a refusé la permission de localisation
@@ -119,7 +123,7 @@ export default function ExplorerScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color="#a78bfa" />
+        <ActivityIndicator color={colors.accent} />
       </View>
     );
   }
@@ -168,7 +172,7 @@ export default function ExplorerScreen() {
             }}
             title={venue.name}
             description={venue.address ?? ''}
-            pinColor="#f97316"
+            pinColor={colors.genre.festival.base}
             onPress={() => {
               setSelectedStore(null);
               setSelectedVenue(venue)}
@@ -198,7 +202,7 @@ export default function ExplorerScreen() {
             }} 
             title={store.name}
             description={store.address ?? ''}
-            pinColor="#a78bfa"
+            pinColor={colors.accent}
             onPress={() => {
               setSelectedVenue(null);
               setSelectedStore(store)
@@ -214,11 +218,11 @@ export default function ExplorerScreen() {
       {/* Légende des couleurs de pins — positionnée en absolu sur la carte */}
       <View style={styles.legend}>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: '#a78bfa' }]} />
+          <View style={[styles.legendDot, { backgroundColor: colors.accent }]} />
           <Text style={styles.legendText}>Disquaires</Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: '#f97316' }]} />
+          <View style={[styles.legendDot, { backgroundColor: colors.genre.festival.base }]} />
           <Text style={styles.legendText}>Concerts</Text>
         </View>
       </View>
@@ -245,11 +249,12 @@ export default function ExplorerScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0f0f0f' },
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg },
   center: {
     flex: 1,
-    backgroundColor: '#0f0f0f',
+    backgroundColor: colors.bg,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
@@ -259,86 +264,87 @@ const styles = StyleSheet.create({
   permissionTitle: {
     fontSize: 18,
     fontWeight: '500',
-    color: '#e5e5e5',
+    color: colors.text,
     textAlign: 'center',
   },
   permissionText: {
     fontSize: 13,
-    color: '#555555',
+    color: colors.textMuted,
     textAlign: 'center',
     lineHeight: 20,
   },
   btnPrimary: {
-    backgroundColor: '#a78bfa',
+    backgroundColor: colors.accent,
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 24,
     marginTop: 8,
   },
-  btnText: { fontSize: 14, fontWeight: '500', color: '#0f0f0f' },
+  btnText: { fontSize: 14, fontWeight: '500', color: colors.bg },
   legend: {
     position: 'absolute',
     top: 56,
     right: 16,
-    backgroundColor: 'rgba(15,15,15,0.85)',
+    backgroundColor: colors.panelTranslucent,
     borderWidth: 1,
-    borderColor: '#1e1e1e',
+    borderColor: colors.divider,
     borderRadius: 10,
     padding: 10,
     gap: 6,
   },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendText: { fontSize: 11, color: '#e5e5e5' },
+  legendText: { fontSize: 11, color: colors.text },
   recenterBtn: {
     position: 'absolute',
     bottom: 260,
     right: 16,
     width: 40,
     height: 40,
-    backgroundColor: '#171717',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#1e1e1e',
+    borderColor: colors.divider,
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 999,
     elevation: 999,
   },
-  recenterIcon: { fontSize: 18, color: '#e5e5e5' },
+  recenterIcon: { fontSize: 18, color: colors.text },
   pinOrange: {
     width: 20,
     height: 20,
     borderRadius: 20,
-    backgroundColor: '#f97316',
+    backgroundColor: colors.genre.festival.base,
     borderWidth: 3,
-    borderColor: '#ffffff',
+    borderColor: colors.bg,
   },
   pinViolet: {
     width: 20,
     height: 20,
     borderRadius: 20,
-    backgroundColor: '#a78bfa',
+    backgroundColor: colors.accent,
     borderWidth: 3,
-    borderColor: '#ffffff',
+    borderColor: colors.bg,
   },
   callout: {
-    backgroundColor: '#171717',
+    backgroundColor: colors.surface,
     borderRadius: 10,
     padding: 10,
     borderWidth: 1,
-    borderColor: '#1e1e1e',
+    borderColor: colors.divider,
     minWidth: 200,
     maxWidth: 220,
   },
   calloutTitle: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#e5e5e5',
+    color: colors.text,
     marginBottom: 2,
   },
   calloutAddress: {
     fontSize: 11,
-    color: '#555555',
+    color: colors.textMuted,
   }
-});
+})
+};

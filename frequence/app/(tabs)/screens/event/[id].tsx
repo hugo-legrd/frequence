@@ -9,14 +9,19 @@ import {
   Image,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../../../../lib/services/supabase';
 import type { EventDetail, InterestStatus } from '../../../../lib/types/event';
 import VenueMiniMap from '../../../components/MiniMap';
 import * as Haptics from 'expo-haptics';
 import FriendsGoingRow from '../../../components/FriendsGoingRow';
+import { useTheme } from '../../../../lib/theme/ThemeContext';
+import { ThemeColors } from '../../../../lib/theme/tokens';
 
 export default function EventDetailScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  
   const { id } = useLocalSearchParams<{ id: string }>();
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -260,26 +265,27 @@ export default function EventDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0f0f',
+    backgroundColor: colors.bg,
   },
   center: {
     flex: 1,
-    backgroundColor: '#0f0f0f',
+    backgroundColor: colors.bg,
     justifyContent: 'center',
     alignItems: 'center',
   },
   empty: {
-    color: '#555555',
+    color: colors.textMuted,
     fontSize: 13,
   },
   hero: {
     height: 320,
     position: 'relative',
     borderBottomWidth: 1,
-    borderBottomColor: '#1e1e1e',
+    borderBottomColor: colors.divider,
   },
   heroImage: {
     width: '100%',
@@ -288,7 +294,7 @@ const styles = StyleSheet.create({
   heroPlaceholder: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#1e1e1e',
+    backgroundColor: colors.divider,
   },
   heroOverlay: {
     position: 'absolute',
@@ -304,22 +310,22 @@ const styles = StyleSheet.create({
     left: 16,
     width: 36,
     height: 36,
-    backgroundColor: 'rgba(15,15,15,0.7)',
+    backgroundColor: colors.scrim,
     borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
   },
   backArrow: {
-    color: '#e5e5e5',
+    color: colors.text,
     fontSize: 16,
   },
   sourceBadge: {
     position: 'absolute',
     top: 52,
     right: 16,
-    backgroundColor: 'rgba(167, 139, 250, 0.2)',
+    backgroundColor: colors.accentSoftBg,
     borderWidth: 1,
-    borderColor: 'rgba(167, 139, 250, 0.5)',
+    borderColor: colors.accentSoftBorder,
     borderRadius: 100,
     paddingHorizontal: 14,
     paddingVertical: 6,
@@ -327,7 +333,7 @@ const styles = StyleSheet.create({
   sourceBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#a78bfa',
+    color: colors.accent,
     letterSpacing: 0.5,
   },
   content: {
@@ -337,14 +343,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '500',
-    color: '#e5e5e5',
+    color: colors.text,
     letterSpacing: -0.5,
     lineHeight: 30,
     marginBottom: 6,
   },
   artist: {
     fontSize: 14,
-    color: '#a78bfa',
+    color: colors.accent,
     marginBottom: 20,
   },
   infoRow: {
@@ -356,33 +362,33 @@ const styles = StyleSheet.create({
   infoIcon: {
     width: 32, 
     height: 32,
-    backgroundColor: '#171717',
+    backgroundColor: colors.surface,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
   infoLabel: {
     fontSize: 11,
-    color: '#3a3a3a',
+    color: colors.textMuted,
     marginBottom: 2,
   },
   infoValue: {
     fontSize: 13,
-    color: '#e5e5e5',
+    color: colors.text,
   },
   infoMeta: {
     fontSize: 12,
-    color: '#555555',
+    color: colors.textMuted,
     marginTop: 2,
   },
   divider: {
     height: 1,
-    backgroundColor: '#1e1e1e',
+    backgroundColor: colors.divider,
     marginVertical: 20,
   },
   sectionTitle: {
     fontSize: 11,
-    color: '#3a3a3a',
+    color: colors.textMuted,
     letterSpacing: 1,
     textTransform: 'uppercase',
     marginBottom: 12,
@@ -396,20 +402,20 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#1e1e1e',
-    backgroundColor: '#171717',
+    borderColor: colors.divider,
+    backgroundColor: colors.surface,
     alignItems: 'center',
   },
   btnInterestActive: {
-    borderColor: '#a78bfa',
-    backgroundColor: 'rgba(167, 139, 250, 0.1)',
+    borderColor: colors.accent,
+    backgroundColor: colors.accentSoftBg,
   },
   btnInterestText: {
     fontSize: 13,
-    color: '#555555',
+    color: colors.textMuted,
   },
   btnInterestTextActive: {
-    color: '#a78bfa',
+    color: colors.accent,
   },
   bottomBar: {
     position: 'absolute',
@@ -418,12 +424,12 @@ const styles = StyleSheet.create({
     right: 0,
     padding: 16,
     paddingBottom: 32,
-    backgroundColor: '#0f0f0f',
+    backgroundColor: colors.bg,
     borderTopWidth: 1,
-    borderTopColor: '#1e1e1e',
+    borderTopColor: colors.divider,
   },
   btnTicket: {
-    backgroundColor: '#a78bfa',
+    backgroundColor: colors.accent,
     borderRadius: 12,
     padding: 15,
     alignItems: 'center',
@@ -431,6 +437,7 @@ const styles = StyleSheet.create({
   btnTicketText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#0f0f0f',
+    color: colors.bg,
   },
-});
+})
+};
