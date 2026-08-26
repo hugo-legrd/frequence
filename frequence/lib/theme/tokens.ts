@@ -18,6 +18,7 @@ export type ThemeColors = {
   accentSoftBorder: string;
   // Fixed dark backfrop for loading overlays / modals - stays dark in both themes
   scrim: string;
+  danger: string;
 }
 
 const neutral = {
@@ -63,6 +64,7 @@ export const darkTheme: ThemeColors = {
   accentSoftBg: 'rgba(151, 131, 249, 0.15)',
   accentSoftBorder: 'rgba(151, 131, 249, 0.3)',
   scrim: 'rgba(0, 0, 0, 0.5)',
+  danger: '#f87171',
 };
 
 export const lightTheme: ThemeColors = {
@@ -84,4 +86,5 @@ export const lightTheme: ThemeColors = {
   accentSoftBg: 'rgba(126, 75, 255, 0.15)',
   accentSoftBorder: 'rgba(126, 75, 255, 0.3)',
   scrim: 'rgba(0, 0, 0, 0.5)',
+  danger: '#f87171'
 };

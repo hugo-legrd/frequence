@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator, Switch } from 'react-native';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useEditableGenres } from "../../../hooks/useEditableGenres";
@@ -9,7 +9,7 @@ import { useTheme } from '../../../../lib/theme/ThemeContext';
 import type { ThemeColors } from '../../../../lib/theme/tokens';
 
 export default function EditProfileScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark, setMode } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const { genres, loading: genresLoading, toggleGenre } = useEditableGenres();
@@ -45,20 +45,20 @@ export default function EditProfileScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <Text style={styles.sectionLabel}>IDENTITÉ</Text>
         {nameLoading ? (
-          <ActivityIndicator color="#a78bfa" style={{ marginVertical: 20 }} />
+          <ActivityIndicator color={colors.accent} style={{ marginVertical: 20 }} />
         ) : (
           <View style={styles.nameBlock}>
               <TextInput
                 style={styles.input}
                 placeholder="Prénom"
-                placeholderTextColor="#555"
+                placeholderTextColor={colors.textMuted}
                 value={firstName}
                 onChangeText={setFirstName}
               />
               <TextInput
                 style={styles.input}
                 placeholder="Nom"
-                placeholderTextColor="#555"
+                placeholderTextColor={colors.textMuted}
                 value={lastName}
                 onChangeText={setLastName}
               />
@@ -76,7 +76,7 @@ export default function EditProfileScreen() {
 
         <Text style={styles.sectionLabel}>MES GENRES</Text>
         {genresLoading ? (
-          <ActivityIndicator color="#a78bfa" style={{ marginVertical: 20 }}/>
+          <ActivityIndicator color={colors.accent} style={{ marginVertical: 20 }}/>
         ) : (
           <View style={styles.genresGrid}>
             {genres.map(genre => (
@@ -95,6 +95,17 @@ export default function EditProfileScreen() {
             ))}
           </View>
         )}
+
+        <Text style={styles.sectionLabel}>APPARENCE</Text>
+        <View style={styles.appearanceRow}>
+          <Text style={styles.appearanceLabel}>Dark Mode</Text>
+          <Switch 
+            value={isDark}
+            onValueChange={(value) => setMode(value ? 'dark' : 'light')}
+            trackColor={{ false: colors.divider, true: colors.accentSoftBg }}
+            thumbColor={isDark ? colors.accent : colors.surface }
+          />
+        </View>
 
         {/* Déconnexion */}
         <Pressable style={styles.logoutBtn} onPress={handleLogout}>
@@ -179,6 +190,16 @@ function createStyles(colors: ThemeColors) {
     paddingVertical: 14,
     alignItems: 'center',
   },
-  logoutBtnText: { color: '#f87171', fontSize: 14, fontWeight: '600' },
+  logoutBtnText: { color: colors.danger, fontSize: 14, fontWeight: '600' },
+  appearanceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  appearanceLabel: { color: colors.text, fontSize: 14, fontWeight: '500' },
   })
 };
