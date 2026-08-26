@@ -1,5 +1,8 @@
 import { View, Text, Pressable, StyleSheet, Image } from 'react-native';
+import { useMemo } from 'react';
 import { ArtistRecommendation } from '../hooks/useRecommendations';
+import { useTheme } from '../../lib/theme/ThemeContext';
+import type { ThemeColors } from '../../lib/theme/tokens';
 
 type Props = {
   artist: ArtistRecommendation;
@@ -7,6 +10,9 @@ type Props = {
 };
 
 export default function ArtistRecomendationCard({ artist, onPress }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View style={styles.card}>
       {artist.imageUrl ? (
@@ -35,11 +41,12 @@ export default function ArtistRecomendationCard({ artist, onPress }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
   card: {
-    backgroundColor: '#0f0f0f',
+    backgroundColor: colors.bg,
     borderWidth: 1,
-    borderColor: '#1e1e1e',
+    borderColor: colors.divider,
     borderRadius: 12,
     padding: 12,
     minWidth: 130,
@@ -56,32 +63,33 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#0f0f0f',
+    color: colors.bg,
   },
   name: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#e5e5e5',
+    color: colors.text,
   },
   match: {
     fontSize: 11,
-    color: '#a78bfa',
+    color: colors.accent,
   },
   tags: {
     fontSize: 10,
-    color: '#555555',
+    color: colors.textMuted,
   },
   btn: {
     padding: 7,
     borderRadius: 8,
-    backgroundColor: 'rgba(167,139,250,0.1)',
+    backgroundColor: colors.accentSoftBg,
     borderWidth: 1,
-    borderColor: 'rgba(167,139,250,0.2)',
+    borderColor: colors.accentSoftBorder,
     alignItems: 'center',
     marginTop: 2,
   },
   btnText: {
     fontSize: 11,
-    color: '#a78bfa',
+    color: colors.accent,
   },
-});
+})
+};

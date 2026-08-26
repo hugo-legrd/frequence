@@ -1,8 +1,14 @@
 import { Pressable, View, Text, StyleSheet, Platform, Linking } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import type { EventDetail } from "../../lib/types/event"
+import { useMemo } from 'react';
+import { useTheme } from '../../lib/theme/ThemeContext';
+import { ThemeColors } from '../../lib/theme/tokens';
 
 export default function VenueMiniMap({ venue }: Readonly<{ venue: EventDetail['venues']}>) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   if (venue?.latitude == null || venue.longitude == null) {
     return null;
   }
@@ -51,7 +57,8 @@ export default function VenueMiniMap({ venue }: Readonly<{ venue: EventDetail['v
   )
 }
 
-  const styles = StyleSheet.create({
+function createStyles(colors: ThemeColors){
+  return StyleSheet.create({
     miniMapContainer: {
       marginTop: 12,
       borderRadius: 12,
@@ -65,7 +72,7 @@ export default function VenueMiniMap({ venue }: Readonly<{ venue: EventDetail['v
       position: 'absolute',
       bottom: 8,
       right: 8,
-      backgroundColor: 'rgba(0,0,0,0.6)',
+      backgroundColor: colors.scrim,
       paddingHorizontal: 8,
       paddingVertical: 4,
       borderRadius: 6
@@ -75,4 +82,5 @@ export default function VenueMiniMap({ venue }: Readonly<{ venue: EventDetail['v
       fontSize: 11,
       fontWeight: '600',
     }
-  });
+  })
+};

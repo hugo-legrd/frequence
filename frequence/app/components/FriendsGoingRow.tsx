@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet, Modal, FlatList } from 'react-native';
 import { useFriendsGoing } from '../hooks/useFriendsGoing'; 
+import { useTheme } from '../../lib/theme/ThemeContext';
+import { ThemeColors } from '../../lib/theme/tokens';
 
 const MAX_NAMES_SHOWN = 2;
 
@@ -20,6 +22,9 @@ function formatFriendsText(names: string[], totalCount: number): string {
 }
 
 export default function FriendsGoingRow({ eventId }: { eventId: string }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const { friends, loading } = useFriendsGoing(eventId);
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -82,7 +87,8 @@ export default function FriendsGoingRow({ eventId }: { eventId: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -92,20 +98,20 @@ const styles = StyleSheet.create({
   icon: { fontSize: 14 },
   text: { 
     fontSize: 13,
-    color: '#a78bfa',
+    color: colors.accent,
     flex: 1,
   },
   link: {
-    color: '#555555',
+    color: colors.textMuted,
     fontWeight: '600',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: colors.scrim,
     justifyContent: 'flex-end',
   },
   modalCard: {
-    backgroundColor: '#171717',
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20, 
     paddingHorizontal: 20,
@@ -117,14 +123,14 @@ const styles = StyleSheet.create({
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#3a3a3a',
+    backgroundColor: colors.textMuted,
     alignSelf: 'center',
     marginBottom: 16,
   },
   modalTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#e5e5e5',
+    color: colors.text,
     marginBottom: 16,
   },
   modalList: {
@@ -140,30 +146,31 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(167,139,250,0.15)',
+    backgroundColor: colors.accentSoftBg,
     justifyContent: 'center',
     alignItems: 'center',
   },
   friendAvatarText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#e5e5e5',
+    color: colors.text,
   },
   friendName: {
     fontSize: 14,
-    color: '#e5e5e5',
+    color: colors.text,
   },
   closeBtn: {
     marginTop: 16,
     borderWidth: 1,
-    borderColor: '#3a3a3a',
+    borderColor: colors.textMuted,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
   },
   closeBtnText: {
-    color: '#e5e5e5',
+    color: colors.text,
     fontSize: 14,
     fontWeight: '500',
   }
 })
+};

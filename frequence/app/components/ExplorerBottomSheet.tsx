@@ -1,4 +1,4 @@
-import { use, useEffect, useRef } from "react";
+import { use, useEffect, useRef, useMemo } from "react";
 import { Animated, View, Text, StyleSheet, Pressable, Linking, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
@@ -8,6 +8,8 @@ import SearchBar from "./SearchBar";
 import ArtistRecommendationCard from "./ArtistRecommendationCard";
 import { useVenueEvents } from "../hooks/useVenueEvents";
 import RemoteImage from "./RemoteImage";
+import { useTheme } from "../../lib/theme/ThemeContext";
+import { ThemeColors } from "../../lib/theme/tokens";
 
 
 type Venue = {
@@ -41,6 +43,10 @@ type Props = {
 
 // Snap points fixes - on change juste l'index actif
 const SNAP_POINTS = ['30%', '55%'];
+
+const { colors } = useTheme();
+const styles = useMemo(() => createStyles(colors), [colors]);
+
 
 function formatEventDate(iso: string | null): string{
   if (!iso) return '';
@@ -314,13 +320,14 @@ export default function ExplorerBottomSheet({ selectedVenue, selectedStore, onCl
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
   background: {
-    backgroundColor: '#171717',
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     borderTopWidth: 1,
-    borderColor: '#1e1e1e'
+    borderColor: colors.divider,
   },
   handleContainer: {
     width: '100%',
@@ -337,7 +344,7 @@ const styles = StyleSheet.create({
     height: 24,
   },
   handle: {
-    backgroundColor: '#3a3a3a',
+    backgroundColor: colors.textMuted,
     width: 36,
     height: 4,
     borderRadius: 2,
@@ -369,11 +376,11 @@ const styles = StyleSheet.create({
   venueName: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#e5e5e5',
+    color: colors.text,
   },
   venueType: {
     fontSize: 12,
-    color: '#f97316',
+    color: colors.genre.festival.base,
     marginTop: 2,
   },
   closeBtn: {
@@ -382,7 +389,7 @@ const styles = StyleSheet.create({
     top: -2,
     width: 28,
     height: 28,
-    backgroundColor: '#1e1e1e',
+    backgroundColor: colors.divider,
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
@@ -390,7 +397,7 @@ const styles = StyleSheet.create({
   },
   closeBtnText: {
     fontSize: 12,
-    color: '#555555',
+    color: colors.textMuted,
   },
   closeBtnAbsolute: {
     position: 'absolute',
@@ -398,7 +405,7 @@ const styles = StyleSheet.create({
     right: 16,
     width: 28,
     height: 28,
-    backgroundColor: '#1e1e1e',
+    backgroundColor: colors.divider,
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
@@ -406,7 +413,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: '#1e1e1e',
+    backgroundColor: colors.divider,
     marginVertical: 12,
   },
   infoRow: {
@@ -422,7 +429,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 13,
-    color: '#e5e5e5',
+    color: colors.text,
     flex: 1,
     lineHeight: 18,
   },
@@ -434,29 +441,29 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#1e1e1e',
-    backgroundColor: '#0f0f0f',
+    borderColor: colors.divider,
+    backgroundColor: colors.bg,
     alignItems: 'center',
   },
   btnSecondaryText: {
     fontSize: 13,
-    color: '#e5e5e5',
+    color: colors.text,
   },
   searchBar: {
-    backgroundColor: '#0f0f0f',
+    backgroundColor: colors.bg,
     borderWidth: 1,
-    borderColor: '#1e1e1e',
+    borderColor: colors.divider,
     borderRadius: 10,
     padding: 12,
     marginBottom: 14,
   },
   searchPlaceholder: {
     fontSize: 13,
-    color: '#3a3a3a',
+    color: colors.textMuted,
   },
   sectionLabel: {
     fontSize: 11,
-    color: '#3a3a3a',
+    color: colors.textMuted,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
     marginBottom: 10,
@@ -468,9 +475,9 @@ const styles = StyleSheet.create({
   },
   category: {
     width: '48%',
-    backgroundColor: '#0f0f0f',
+    backgroundColor: colors.bg,
     borderWidth: 1,
-    borderColor: '#1e1e1e',
+    borderColor: colors.divider,
     borderRadius: 10,
     padding: 10,
     flexDirection: 'row',
@@ -482,12 +489,12 @@ const styles = StyleSheet.create({
   },
   categoryName: {
     fontSize: 12,
-    color: '#e5e5e5',
+    color: colors.text,
     fontWeight: '500',
   },
   categoryCount: {
     fontSize: 10, 
-    color: '#555555',
+    color: colors.textMuted,
     marginTop: 2,
   },
   artistsScroll: {
@@ -500,24 +507,24 @@ const styles = StyleSheet.create({
     width: 120,
     height: 150,
     borderRadius: 12,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.surface,
     padding: 8,
   },
   skeletonImage: {
     width: '100%',
     height: 90,
     borderRadius: 8,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: colors.divider,
     marginBottom: 8,
   },
   skeletonLine: {
     height: 10,
     borderRadius: 4,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: colors.divider,
     marginBottom: 4,
   },
   venueEventsEmpty: {
-    color: '#555555',
+    color: colors.textMuted,
     fontSize: 13,
     paddingHorizontal: 4,
     paddingVertical: 12,
@@ -529,13 +536,14 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   venueEventName: {
-    color: '#e5e5e5',
+    color: colors.text,
     fontSize: 14,
     fontWeight: '500',
   },
   venueEventDate: {
-    color: '#555555',
+    color: colors.textMuted,
     fontSize: 12, 
     marginTop: 2,
   }
-});
+})
+};

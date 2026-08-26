@@ -1,8 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
-  TextInput,
   StyleSheet,
   Pressable,
   ScrollView,
@@ -11,6 +10,8 @@ import {
 import { router } from 'expo-router';
 import { searchAll, SearchResult, SearchResults } from '../../lib/services/search';
 import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
+import { useTheme } from '../../lib/theme/ThemeContext';
+import { ThemeColors } from '../../lib/theme/tokens';
 
 const SUGGESTIONS = ['Techno', 'Concrete', 'Rex Club', 'House', 'Hardgroove'];
 
@@ -20,6 +21,9 @@ type Props = {
 };
 
 export default function SearchBar({ onFocus, onBlur }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResults | null>(null);
   const [loading, setLoading] = useState(false);
@@ -208,7 +212,8 @@ export default function SearchBar({ onFocus, onBlur }: Props) {
   }
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
   container: {
     position: 'relative',
     zIndex: 100,
@@ -217,28 +222,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#0f0f0f',
+    backgroundColor: colors.bg,
     borderWidth: 1,
-    borderColor: '#1e1e1e',
+    borderColor: colors.divider,
     borderRadius: 10,
     padding: 10,
   },
   inputRowFocused: {
-    borderColor: '#a78bfa',
+    borderColor: colors.accent,
   },
   searchIcon: {
     fontSize: 16,
-    color: '#3a3a3a',
+    color: colors.textMuted,
   },
   input: {
     flex: 1,
     fontSize: 13,
-    color: '#e5e5e5',
+    color: colors.text,
     padding: 0,
   },
   clearBtn: {
     fontSize: 12,
-    color: '#3a3a3a',
+    color: colors.textMuted,
     padding: 4,
   },
   dropdown: {
@@ -246,9 +251,9 @@ const styles = StyleSheet.create({
     top: 48,
     left: 0,
     right: 0,
-    backgroundColor: '#171717',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '1e1e1e',
+    borderColor: colors.divider,
     borderRadius: 12,
     padding: 12,
     maxHeight: 300,
@@ -262,7 +267,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: 10, 
-    color: '#3a3a3a',
+    color: colors.textMuted,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
     marginBottom: 6,
@@ -278,7 +283,7 @@ const styles = StyleSheet.create({
   resultIcon: {
     width: 32,
     height: 32, 
-    backgroundColor: '#0f0f0f',
+    backgroundColor: colors.bg,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
@@ -293,16 +298,16 @@ const styles = StyleSheet.create({
   resultName: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#e5e5e5',
+    color: colors.text,
   },
   resultMeta: {
     fontSize: 11, 
-    color: '#555555',
+    color: colors.textMuted,
     marginTop: 2,
   },
   resultArrow: {
     fontSize: 16,
-    color: '#3a3a3a',
+    color: colors.textMuted,
   },
   pills: {
     flexDirection: 'row',
@@ -313,14 +318,14 @@ const styles = StyleSheet.create({
   pill: {
     paddingVertical: 6,
     paddingHorizontal: 12,
-    backgroundColor: '#0f0f0f',
+    backgroundColor: colors.bg,
     borderWidth: 1,
-    borderColor: '#1e1e1e',
+    borderColor: colors.divider,
     borderRadius: 100,
   },
   pillText: {
     fontSize: 12,
-    color: '#555555',
+    color: colors.textMuted,
   },
   emptyState: {
     alignItems: 'center',
@@ -330,10 +335,11 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#e5e5e5',
+    color: colors.text,
   },
   emptySub: {
     fontSize: 12,
-    color: '#555555',
+    color: colors.textMuted,
   },
-});
+})
+};

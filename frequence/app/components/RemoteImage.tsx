@@ -1,5 +1,7 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
 import { Animated, Image, View, StyleSheet, ViewStyle } from 'react-native';
+import { useTheme } from '../../lib/theme/ThemeContext';
+import { ThemeColors } from '../../lib/theme/tokens';
 
 type Props = { 
   uri: string | null;
@@ -9,6 +11,9 @@ type Props = {
 };
 
 export default function RemoteImage({ uri, size, borderRadius, style }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
   const opacity = useRef(new Animated.Value(0.3)).current;
@@ -46,6 +51,8 @@ export default function RemoteImage({ uri, size, borderRadius, style }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  placeholder: { backgroundColor: '#1e1e1e'}
+function createStyles(colors: ThemeColors) { 
+  return StyleSheet.create({
+    placeholder: { backgroundColor: colors.divider}
 })
+};

@@ -1,5 +1,7 @@
-import { forwardRef } from 'react';
+import { forwardRef, useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useTheme } from '../../lib/theme/ThemeContext';
+import { ThemeColors } from '../../lib/theme/tokens';
 
 type Props = {
   displayName: string;
@@ -11,6 +13,9 @@ type Props = {
 
 const ProfileShareCard = forwardRef<View, Props>(
   ({ displayName, concertsCount, artistsCount, topArtist, year }, ref) => {
+    const { colors } = useTheme();
+    const styles = useMemo(() => createStyles(colors), [colors]);
+
     return (
       <View ref={ref} style={styles.card} collapsable={false}>
         <Text style={styles.year}>{year}</Text>
@@ -42,28 +47,30 @@ const ProfileShareCard = forwardRef<View, Props>(
 
 export default ProfileShareCard;
 
-const styles = StyleSheet.create({
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
   card: {
     width: 320,
     height: 400,
-    backgroundColor: '#0f0f0f',
+    backgroundColor: colors.bg,
     borderRadius: 24,
     padding: 28,
     justifyContent: 'space-between',
   },
-  year: { fontSize: 14, color: '#a78bfa', fontWeight: '600' },
-  title: { fontSize: 28, fontWeight: '700', color: '#e5e5e5', marginTop: 4 },
+  year: { fontSize: 14, color: colors.accent, fontWeight: '600' },
+  title: { fontSize: 28, fontWeight: '700', color: colors.text, marginTop: 4 },
   statsGrid: { flexDirection: 'row', gap: 16, marginTop: 24 },
   statBox: {
     flex: 1,
-    backgroundColor: '#171717',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 16,
   },
-  statValue: { fontSize: 32, fontWeight: '700', color: '#e5e5e5' },
-  statLabel: { fontSize: 13, color: '#555555', marginTop: 4 },
+  statValue: { fontSize: 32, fontWeight: '700', color: colors.text },
+  statLabel: { fontSize: 13, color: colors.textMuted, marginTop: 4 },
   topArtistBlock: { marginTop: 8 },
-  topArtistLabel: { fontSize: 12, color: '#555555'},
-  topArtistName: { fontSize: 20, fontWeight: '600', color: '#a78bfa', marginTop: 2 },
-  footer: { fontSize: 13, color: '#555555', textAlign: 'right' },
+  topArtistLabel: { fontSize: 12, color: colors.textMuted},
+  topArtistName: { fontSize: 20, fontWeight: '600', color: colors.accent, marginTop: 2 },
+  footer: { fontSize: 13, color: colors.textMuted, textAlign: 'right' },
 })
+};

@@ -1,4 +1,7 @@
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import { useMemo } from 'react';
+import { useTheme } from '../../lib/theme/ThemeContext';
+import { ThemeColors } from '../../lib/theme/tokens';
 
 const DATE_FILTERS = [
   { key: 'all', label: 'Tous' },
@@ -25,6 +28,10 @@ type Props = {
 };
 
 export default function FilterBar({ filters, onChange }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  
+
   function toggleDate(key: string) {
     onChange({ ...filters, date: key });
   }
@@ -101,18 +108,19 @@ export default function FilterBar({ filters, onChange }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
   container: {
     paddingHorizontal: 16,
     paddingBottom: 16,
-    backgroundColor: '#0f0f0f',
+    backgroundColor: colors.bg,
     borderBottomWidth: 1,
-    borderBottomColor: '#1e1e1e',
+    borderBottomColor: colors.divider,
     gap: 10,
   },
   label: {
     fontSize: 11,
-    color: '#3a3a3a',
+    color: colors.textMuted,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
@@ -131,18 +139,18 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#a78bfa',
+    backgroundColor: colors.accent,
     justifyContent: 'center',
     alignItems: 'center',
   },
   badgeText: {
     fontSize: 9,
-    color: '#0f0f0f',
+    color: colors.bg,
     fontWeight: '500',
   },
   reset: {
     fontSize: 11,
-    color: '#a78bfa',
+    color: colors.accent,
   },
   row: {
     flexGrow: 0,
@@ -156,19 +164,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 100,
     borderWidth: 1,
-    borderColor: '#1e1e1e',
-    backgroundColor: '#171717',
+    borderColor: colors.divider,
+    backgroundColor: colors.surface,
   },
   pillActive: {
-    backgroundColor: '#a78bfa',
-    borderColor: '#a78bfa',
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   pillText: {
     fontSize: 14,
-    color: '#555555',
+    color: colors.textMuted,
   },
   pillTextActive: {
-    color: '#0f0f0f',
+    color: colors.bg,
     fontWeight: '500',
   },
-});
+})
+};
