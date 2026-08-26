@@ -1,19 +1,19 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { UnreadActivityProvider, useUnreadActivity } from './context/UnreadActivityContext';
-import { ThemeProvider, useTheme } from '../../lib/theme/ThemeContext';
+import { useTheme } from '../../lib/theme/ThemeContext';
 
-function TabsLayout() {
+function TabsNavigator() {
   const { count } = useUnreadActivity();
+  const { colors } = useTheme();
 
   return (
-    <ThemeProvider>
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: { backgroundColor: '#0f0f0f', borderTopColor: '#1e1e1e' },
-        tabBarActiveTintColor: '#a78bfa',
-        tabBarInactiveTintColor: '#3a3a3a',
+        tabBarStyle: { backgroundColor: colors.bg, borderTopColor: colors.surface },
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.textMuted,
       }}
     >
       <Tabs.Screen
@@ -43,7 +43,7 @@ function TabsLayout() {
           title: 'Amis',
           tabBarIcon: ({ color }) => <Ionicons name="people" size={24} color={color} />,
           tabBarBadge: count > 0 ? count : undefined,
-          tabBarBadgeStyle: { backgroundColor: '#a78bfa' },
+          tabBarBadgeStyle: { backgroundColor: colors.accent },
 
         }}
       />
@@ -59,14 +59,13 @@ function TabsLayout() {
         options={{ href: null}}
       />
     </Tabs>
-    </ThemeProvider>
   );
 }
 
 export default function TabsLayoutOuter() {
   return (
     <UnreadActivityProvider>
-      <TabsLayout />
+        <TabsNavigator />
     </UnreadActivityProvider>
   )
 }

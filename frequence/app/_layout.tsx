@@ -2,11 +2,11 @@ import { Stack, useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { supabase } from '../lib/services/supabase';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { ThemeProvider } from '../lib/theme/ThemeContext';
 
 export default function RootLayout() {
   const router = useRouter();
   const isReady = useRef(false);
-
 
   useEffect(() => {
     // Marquer le navigator comme prêt avant le premier render
@@ -34,7 +34,9 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <Stack screenOptions={{ headerShown: false }} />
+      <ThemeProvider>
+        <Stack screenOptions={{ headerShown: false }} />
+        </ThemeProvider>
     </GestureHandlerRootView>
   );
 }
