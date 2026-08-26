@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { router } from 'expo-router';
 import { View, Text, TextInput, FlatList, Pressable, StyleSheet, ActivityIndicator, Animated } from 'react-native';
-import { useUserSearch, UserSearchResult } from '../../../hooks/useUserSearch';
-import { useFollow } from '../../../hooks/useFollow';
-import { useSearchHistory } from '../../../hooks/useSearchHistory';
+import { useUserSearch, UserSearchResult } from '../../../hooks/social/useUserSearch';
+import { useFollow } from '../../../hooks/social/useFollow';
+import { useSearchHistory } from '../../../hooks/social/useSearchHistory';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../../../lib/theme/ThemeContext';
 import { ThemeColors } from '../../../../lib/theme/tokens';

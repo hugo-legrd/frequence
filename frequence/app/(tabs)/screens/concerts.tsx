@@ -1,5 +1,5 @@
 import { View, Text, FlatList, ActivityIndicator, StyleSheet, Image, Pressable } from 'react-native';
-import { useEvents } from '../../hooks/useEvents';
+import { useEvents } from '../../hooks/events/useEvents';
 import { router } from 'expo-router';
 import { useState, useMemo } from 'react';
 import FilterBar, { Filters } from '../../components/FilterBar';

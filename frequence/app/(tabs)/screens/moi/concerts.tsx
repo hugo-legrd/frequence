@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator } from 'react-native';   
 import { router } from 'expo-router';
-import { useMyEvents } from '../../../hooks/useMyEvents';
+import { useMyEvents } from '../../../hooks/events/useMyEvents';
 import RemoteImage from '../../../components/RemoteImage';
 import { useTheme } from '../../../../lib/theme/ThemeContext';
 import { ThemeColors } from '../../../../lib/theme/tokens';

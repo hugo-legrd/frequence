@@ -1,9 +1,9 @@
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useMemo } from 'react';
-import { usePublicProfile } from '../../../hooks/usePublicProfile';
-import { useFollow } from '../../../hooks/useFollow';
-import { useMutualFriends } from '../../../hooks/useMutualFriends';
+import { usePublicProfile } from '../../../hooks/profile/usePublicProfile';
+import { useFollow } from '../../../hooks/social/useFollow';
+import { useMutualFriends } from '../../../hooks/social/useMutualFriends';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../../../lib/theme/ThemeContext';
 import type { ThemeColors } from '../../../../lib/theme/tokens';

@@ -1,16 +1,16 @@
 import { useMemo, useRef, useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Animated } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { useMyProfile } from '../../../hooks/useMyProfile';
-import { useMyEvents } from '../../../hooks/useMyEvents';
+import { useMyProfile } from '../../../hooks//profile/useMyProfile';
+import { useMyEvents } from '../../../hooks/events/useMyEvents';
 import * as Haptics from 'expo-haptics';
 import { RefreshControl } from 'react-native-gesture-handler';
 import { MyEventRow } from '../../../../lib/types/profile';
 import RemoteImage from '../../../components/RemoteImage';
 import ViewShot from 'react-native-view-shot';
 import ProfileShareCard from '../../../components/ProfileShareCard';
-import { useShareProfile } from '../../../hooks/useShareProfile';
-import { useMyArtists } from '../../../hooks/useMyArtists';
+import { useShareProfile } from '../../../hooks/social/useShareProfile';
+import { useMyArtists } from '../../../hooks/profile/useMyArtists';
 import { useTheme } from '../../../../lib/theme/ThemeContext';
 import type { ThemeColors } from '../../../../lib/theme/tokens';
 

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { router } from 'expo-router';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, RefreshControl } from 'react-native';
-import { useFriendsActivity } from '../../../hooks/useFriendsActivity';
+import { useFriendsActivity } from '../../../hooks/social/useFriendsActivity';
 import type { FriendActivityRow } from '../../../../lib/types/activity';
 import { useUnreadActivity } from '../../context/UnreadActivityContext';
 import { useTheme } from '../../../../lib/theme/ThemeContext';
