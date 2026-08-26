@@ -44,9 +44,6 @@ type Props = {
 // Snap points fixes - on change juste l'index actif
 const SNAP_POINTS = ['30%', '55%'];
 
-const { colors } = useTheme();
-const styles = useMemo(() => createStyles(colors), [colors]);
-
 
 function formatEventDate(iso: string | null): string{
   if (!iso) return '';
@@ -60,6 +57,8 @@ function formatEventDate(iso: string | null): string{
 }
 
 function VenueEventsList({ venueId }: { venueId: string }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { events, loading } = useVenueEvents(venueId);
 
   if (loading) {
@@ -103,6 +102,9 @@ function VenueEventsList({ venueId }: { venueId: string }) {
 }
 
 export default function ExplorerBottomSheet({ selectedVenue, selectedStore, onClose, venueCount, storeCount, onIndexChange, animatedIndex }: Readonly<Props>) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  
   const bottomSheetRef = useRef<BottomSheet>(null);
   const { recommendations, loading } = useRecommendations();
 
