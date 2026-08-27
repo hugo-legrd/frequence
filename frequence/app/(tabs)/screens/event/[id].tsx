@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Linking,
   Image,
+  Share,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useEffect, useState, useMemo } from 'react';
@@ -17,6 +18,17 @@ import * as Haptics from 'expo-haptics';
 import FriendsGoingRow from '../../../components/FriendsGoingRow';
 import { useTheme } from '../../../../lib/theme/ThemeContext';
 import { ThemeColors } from '../../../../lib/theme/tokens';
+
+const CATEGORY_LABELS: Record<string, string> = {
+  gig: 'Concert',
+  dj: 'DJ Set',
+}
+
+function getCategoryLabel(style?: string[] | null): string {
+  if (!style || style.length === 0) return 'Événement';
+  const prefix = style[0]?.split(':')[0]?.toLowerCase();
+  return CATEGORY_LABELS[prefix] ?? 'Événement';
+}
 
 export default function EventDetailScreen() {
   const { colors } = useTheme();
@@ -35,9 +47,10 @@ export default function EventDetailScreen() {
       const { data, error } = await supabase
         .from('events')
         .select(`
-          id, name, starts_at, image_url, ticket_link, source,
+          id, name, starts_at, image_url, ticket_link, source, style,
           venues (id, name, address, latitude, longitude),
-          artists (id, name, image_url)
+          artists (id, name, image_url),
+          event_genres ( genres ( name ) )
         `)
         .eq('id', id)
         .single();
@@ -106,34 +119,74 @@ export default function EventDetailScreen() {
     setInterestLoading(false);
   }
 
-  function formatDate(dateStr: string) {
-    return new Date(dateStr).toLocaleDateString('fr-FR', {
-      weekday: 'long',
+  async function handleShare() {
+    if (!event) return;
+    
+    try {
+      await Share.share({
+        message: `${event.name} · ${event.starts_at ? formatDateShort(event.starts_at) : ''}${
+          event.venues?.name ?` · ${event.venues.name}` : ''
+        }`,
+      });
+    } catch (e) {
+      console.error(e);
+    } 
+  }
+
+
+  function formatDateShort(dateStr: string) {
+    const date = new Date(dateStr);
+    const datePart = date.toLocaleDateString('fr-FR', {
+      weekday: 'short',
       day: 'numeric',
       month: 'long',
+    });
+    const capitalized = datePart.charAt(0).toUpperCase() + datePart.slice(1);
+    const timePart = date.toLocaleTimeString('fr-FR', {
       hour: '2-digit',
       minute: '2-digit',
-    });
+    })
+      return `${capitalized} · ${timePart}`;
   }
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator color="#a78bfa" />
-      </View>
-    );
-  }
+    if (loading) {
+      return (
+        <View style={styles.center}>
+          <ActivityIndicator color={colors.accent} />
+        </View>
+      )
+    }
 
-  if (!event) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.empty}>Événement introuvable</Text>
-      </View>
-    );
-  }
+    if (!event) {
+      return (
+        <View style={styles.center}>
+            <Text style={styles.empty}>Événement introuvable</Text>
+        </View>
+      );
+    }
+
+  const category = getCategoryLabel(event.style);
+  const lineup: { name: string; role?: string }[] | undefined = (event as any).lineup;
+  const genreNames = (event.event_genres ?? [])
+    .map((eg) => eg.genres?.name)
+    .filter((name): name is string => Boolean(name));
+  console.log('Event: ', event);
+  console.log('Genre Names: ', genreNames);
 
   return (
     <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Pressable 
+          style={styles.backBtn}
+          hitSlop={8}
+          onPress={() => router.push('/(tabs)/screens/concerts')}  
+        >
+          <Text style={styles.backArrow}>←</Text>
+          <Text style={styles.backLabel}>Retour</Text>
+        </Pressable>
+      </View>
+  
       <ScrollView showsVerticalScrollIndicator={false}>
         {/*Hero*/}
         <View style={styles.hero}>
@@ -146,105 +199,102 @@ export default function EventDetailScreen() {
           ) : (
             <View style={styles.heroPlaceholder} />
           )}
-          <View style={styles.heroOverlay} />
-
-          <Pressable style={styles.backBtn} onPress={() => router.push('/(tabs)/screens/concerts')}>
-            <Text style={styles.backArrow}>←</Text>
-          </Pressable>
-
-          { event.source && (
-            <View style={styles.sourceBadge}>
-              <Text style={styles.sourceBadgeText}>
-                {event.source.toUpperCase()}
-              </Text>
-            </View>
-          )}
         </View>
 
         {/* Contenu */}
         <View style={styles.content}>
+          <Text style={styles.eyebrow}>{category.toUpperCase()}</Text>
           <Text style={styles.title}>{event.name}</Text>
-          {event.artists && (
-            <Text style={styles.artist}>{event.artists.name}</Text>
-          )}
-
-          <FriendsGoingRow eventId={id} />
 
           {/* Infos */}
-          {event.starts_at && (
-            <View style={styles.infoRow}>
-              <View style={styles.infoIcon}>
-                <Text>📅</Text>
-              </View>
-              <View>
-                <Text style={styles.infoLabel}>Date</Text>
-                <Text style={styles.infoValue}>
-                  {formatDate(event.starts_at)}
-                </Text>
-              </View>
-            </View>  
+          {(event.starts_at || event.venues?.name) && (
+            <Text style={styles.meta}>
+                {event.starts_at ? formatDateShort(event.starts_at) : ''}
+                {event.starts_at && event.venues?.name ? ' · ' : ''}
+                {event.venues?.name ?? ''}
+            </Text>
           )}
 
-          {event.venues && (
-            <View style={styles.infoRow}>
-              <View style={styles.infoIcon}>
-                <Text>📍</Text>
-              </View>
-              <View style={{ flex: 1}}>
-                <Text style={styles.infoLabel}>Lieu</Text>
-                <Text style={styles.infoValue}>{event.venues.name}</Text>
-                {event.venues.address && (
-                  <Text style={styles.infoMeta}>{event.venues.address}</Text>
-                )} 
-              </View>
+          {genreNames.length > 0 && (
+            <View style={styles.genresRow}>
+              {genreNames.map((genre) => (
+                <View key={genre} style={styles.genreChip}>
+                  <Text style={styles.genreChipText}>{genre}</Text>
+                </View>
+              ))}
             </View>
           )}
-          {event.venues && <VenueMiniMap venue={event.venues} />}
 
-          <View style={styles.divider} />
-
-          {/* Statut */}
-          <Text style={styles.sectionTitle}>Ton statut</Text>
-          <View style={styles.interestRow}>
-          <Pressable
-              style={[
-                styles.btnInterest,
-                interest === 'interested' && styles.btnInterestActive,
-              ]}
+          {/* Actions */}
+          <View style={styles.actionsRow}>
+            <Pressable
+              style={[styles.pillBtn, interest === 'interested' && styles.pillBtnActive]}
               onPress={() => handleInterest('interested')}
               disabled={interestLoading}
             >
-              <Text
+              <Text 
                 style={[
-                  styles.btnInterestText,
-                  interest === 'interested' && styles.btnInterestTextActive,
+                  styles.pillBtnText,
+                  interest === 'interested' && styles.pillBtnTextActive
                 ]}
               >
-                ⭐ Intéressé
+                {interest === 'interested' ? '⭐ Intéressé' : 'Je suis intéressé'}
               </Text>
             </Pressable>
-
             <Pressable
-              style={[
-                styles.btnInterest,
-                interest === 'going' && styles.btnInterestActive,
-              ]}
+              style={[styles.pillBtn, interest === 'going' && styles.pillBtnActive]}
               onPress={() => handleInterest('going')}
-              disabled={interestLoading}
+              disabled={interestLoading}    
             >
               <Text
                 style={[
-                  styles.btnInterestText,
-                  interest === 'going' && styles.btnInterestTextActive,
+                  styles.pillBtnText,
+                  interest === 'going' && styles.pillBtnTextActive,
                 ]}
               >
-                ✅ J'y vais
+                {interest === 'going' ? '✅ J\'y vais' : 'J\'y vais'}
               </Text>
+            </Pressable>
+            <Pressable style={styles.shareBtn} onPress={handleShare}>
+              <Text style={styles.shareBtnText}>Partager</Text>
             </Pressable>
           </View>
 
           <View style={styles.divider} />
-        </View>
+
+          {/* À l'affiche */}
+          {lineup && lineup.length > 0 && (
+            <>
+              <Text style={styles.sectionTitle}>À l'affiche</Text>
+              <Text style={styles.lineupText}>
+                {lineup
+                  .map((a) => (a.role ? `${a.role}: ${a.name}`: a.name))
+                  .join(', ')}
+              </Text>
+              <View style={styles.divider} />
+            </>
+          )}
+          
+          {/* Qui y va */}
+          <Text style={styles.sectionTitle}>Qui y va</Text>
+          <FriendsGoingRow eventId={id} />
+
+          <View style={styles.divider} />
+
+          {/* Lieu */}
+          {event.venues && (
+            <>
+              <Text style={styles.sectionTitle}>Lieu</Text>
+              <Text style={styles.venueName}>{event.venues.name}</Text>
+              {event.venues.address && (
+                <Text style={styles.venueAddress}>{event.venues.address}</Text>
+              )}
+              <View style={styles.mapWrap}>
+                <VenueMiniMap venue={event.venues} />
+              </View>
+            </>
+          )}
+      </View>
 
         {/* Padding pour le bouton fixe */}
         <View style= {{ height: 100}} />
@@ -281,11 +331,17 @@ function createStyles(colors: ThemeColors) {
     color: colors.textMuted,
     fontSize: 13,
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 52,
+    paddingBottom: 12,
+    backgroundColor: colors.bg,
+  },
   hero: {
-    height: 320,
-    position: 'relative',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.divider,
+    height: 200,
+    width: '100%',
   },
   heroImage: {
     width: '100%',
@@ -296,90 +352,117 @@ function createStyles(colors: ThemeColors) {
     height: '100%',
     backgroundColor: colors.divider,
   },
-  heroOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 120,
-    backgroundColor: 'transparent',
-  },
   backBtn: {
-    position: 'absolute',
-    top: 52,
-    left: 16,
-    width: 36,
-    height: 36,
-    backgroundColor: colors.scrim,
-    borderRadius: 18,
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
   },
   backArrow: {
     color: colors.text,
     fontSize: 16,
   },
-  sourceBadge: {
-    position: 'absolute',
-    top: 52,
-    right: 16,
-    backgroundColor: colors.accentSoftBg,
-    borderWidth: 1,
-    borderColor: colors.accentSoftBorder,
-    borderRadius: 100,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-  },
-  sourceBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.accent,
-    letterSpacing: 0.5,
+  backLabel: {
+    color: colors.textMuted,
+    fontSize: 15,
   },
   content: {
     padding: 20,
     paddingTop: 28,
   },
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.accent,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
   title: {
-    fontSize: 24,
-    fontWeight: '500',
+    fontSize: 26,
+    fontWeight: '700',
     color: colors.text,
     letterSpacing: -0.5,
-    lineHeight: 30,
+    lineHeight: 32,
     marginBottom: 6,
   },
-  artist: {
+  meta: {
     fontSize: 14,
-    color: colors.accent,
+    color: colors.textMuted,
     marginBottom: 20,
   },
-  infoRow: {
+  genresRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    marginBottom: 14,
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 20,
   },
-  infoIcon: {
-    width: 32, 
-    height: 32,
+  genreChip: {
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: colors.divider,
     backgroundColor: colors.surface,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  infoLabel: {
-    fontSize: 11,
+  genreChipText: {
+    fontSize: 12,
+    fontWeight: '500',
     color: colors.textMuted,
-    marginBottom: 2,
   },
-  infoValue: {
+  actionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 10,
+  },
+  pillBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pillBtnActive: {
+    backgroundColor: colors.accentSoftBg,
+  },
+  pillBtnText: {
     fontSize: 13,
+    fontWeight: '600',
+    color: colors.accent,
+  },
+  pillBtnTextActive: {
+    color: colors.accent,
+  },
+  shareBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shareBtnText: {
+    fontSize: 13,
+    fontWeight: '500',
     color: colors.text,
   },
-  infoMeta: {
+  lineupText: {
+    fontSize: 14,
+    color: colors.textMuted,
+    lineHeight: 20,
+  },
+  venueName: {
+    fontSize: 14,
+    color: colors.text,
+    marginBottom: 2,
+  },
+  venueAddress: {
     fontSize: 12,
     color: colors.textMuted,
-    marginTop: 2,
+    marginBottom: 12,
+  },
+  mapWrap: {
+    marginTop: 4,
   },
   divider: {
     height: 1,
@@ -387,35 +470,10 @@ function createStyles(colors: ThemeColors) {
     marginVertical: 20,
   },
   sectionTitle: {
-    fontSize: 11,
-    color: colors.textMuted,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
+    fontSize: 17,
+    fontWeight: '600',
+    color: colors.text,
     marginBottom: 12,
-  },
-  interestRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  btnInterest: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.divider,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-  },
-  btnInterestActive: {
-    borderColor: colors.accent,
-    backgroundColor: colors.accentSoftBg,
-  },
-  btnInterestText: {
-    fontSize: 13,
-    color: colors.textMuted,
-  },
-  btnInterestTextActive: {
-    color: colors.accent,
   },
   bottomBar: {
     position: 'absolute',

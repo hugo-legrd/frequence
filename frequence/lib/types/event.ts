@@ -17,6 +17,8 @@ export type EventDetail = {
     name: string;
     image_url: string | null;
   } | null;
+  style: string[] | null;
+  event_genres: { genres: { name: string } | null }[] | null;
 };
 
 export type InterestStatus = 'interested' | 'going' | null;
