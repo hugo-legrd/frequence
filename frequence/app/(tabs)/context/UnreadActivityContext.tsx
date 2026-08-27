@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import { useUnreadActivityCount } from '../../hooks/useUnreadActivityCount';
+import { useUnreadActivityCount } from '../../hooks/social/useUnreadActivityCount';
 
 const UnreadActivityContext = createContext<ReturnType<typeof useUnreadActivityCount> | null>(null);
 

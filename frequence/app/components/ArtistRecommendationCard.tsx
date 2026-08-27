@@ -1,6 +1,6 @@
 import { View, Text, Pressable, StyleSheet, Image } from 'react-native';
 import { useMemo } from 'react';
-import { ArtistRecommendation } from '../hooks/useRecommendations';
+import { ArtistRecommendation } from '../hooks/events/useRecommendations';
 import { useTheme } from '../../lib/theme/ThemeContext';
 import type { ThemeColors } from '../../lib/theme/tokens';
 

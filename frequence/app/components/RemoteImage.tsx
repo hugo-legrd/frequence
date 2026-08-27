@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useMemo } from 'react';
-import { Animated, Image, View, StyleSheet, ViewStyle } from 'react-native';
+import { Animated, Image, View, StyleSheet, ViewStyle, ImageStyle, StyleProp } from 'react-native';
 import { useTheme } from '../../lib/theme/ThemeContext';
 import { ThemeColors } from '../../lib/theme/tokens';
 
@@ -36,13 +36,13 @@ export default function RemoteImage({ uri, size, borderRadius, style }: Props) {
   }
 
   return (
-    <View style={[baseStyle,{ overflow: 'hidden' }, style]}>
+    <View style={[baseStyle, { overflow: 'hidden' }, style]}>
       {!loaded && (
-        <Animated.View style={[styles.placeholder, baseStyle, {position: 'absolute', opacity }]} />
+        <Animated.View style={[styles.placeholder, baseStyle, style, {position: 'absolute', opacity }]} />
       )}
       <Image
         source={{ uri }}
-        style={[baseStyle, { position: 'absolute' }]}
+        style={[baseStyle, style, { position: 'absolute' }] as StyleProp<ImageStyle>}
         resizeMode="cover"
         onLoad={() => setLoaded(true)}
         onError={() => setFailed(true)}
