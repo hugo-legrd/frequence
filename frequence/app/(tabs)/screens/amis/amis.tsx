@@ -110,11 +110,6 @@ export default function FriendsScreen() {
 
   return (
     <View style={styles.container}>
-      {refreshing && (
-        <View style={styles.customRefreshIndicator}>
-          <ActivityIndicator color="#a78bfa" size="small" />
-        </View> 
-      )}
       <ScrollView 
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.scrollContent} 
