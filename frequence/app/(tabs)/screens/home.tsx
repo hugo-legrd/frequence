@@ -1,5 +1,6 @@
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { useState, useMemo } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/services/supabase';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -9,6 +10,10 @@ import { useLatestEvents } from '../../hooks/events/useLatestEvents';
 import RemoteImage from '../../components/RemoteImage';
 import { useTheme } from '../../../lib/theme/ThemeContext';
 import type { ThemeColors } from '../../../lib/theme/tokens';
+import { useMyProfile } from '../../hooks/profile/useMyProfile';
+
+
+const SEARCH_ROUTE = '/(tabs)/screens/amis/search';
 
 function SectionTitle({ title, color }: { title: string, color: string}) {
   return (
@@ -16,6 +21,13 @@ function SectionTitle({ title, color }: { title: string, color: string}) {
       {title}
     </Text>
   );
+}
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 5) return 'Bonne nuit.';
+  if (hour < 18) return 'Bonjour.';
+  return 'Bonsoir.'
 }
 
 function formatFriendsLabel(names: string[]): string {
@@ -54,6 +66,8 @@ export default function HomeScreen() {
   const { event: randomEvent, loading: eventLoading } = useRandomEvent();
   const { pick: friendsPick, loading: friendsLoading } = useHomeFriendsPick();
   const { events: latestsEvents, loading: latestLoading } = useLatestEvents();
+  const { profile } = useMyProfile();
+  const userInitial = profile?.display_name?.charAt(0).toUpperCase() ?? '';
   
   function toggleFilter(filter: string) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -74,10 +88,22 @@ export default function HomeScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.logo}>fréquence.</Text>
-          <Pressable style={styles.profileButton} onPress={() => router.push('/(tabs)/screens/moi')}>
-            <Text style={styles.profileIcon}>•</Text>
-          </Pressable>
+          <View style={styles.headerActions}>
+            <Pressable
+              style={styles.iconButton}
+              onPress={() => router.push(SEARCH_ROUTE as never)}
+              hitSlop={8}
+            >
+              <Ionicons name="search" size={18} color={colors.text} />
+            </Pressable>
+            <Pressable style={styles.profileButton} onPress={() => router.push('/(tabs)/screens/moi')}>
+              <Text style={styles.profileIcon}>{userInitial}</Text>
+            </Pressable>
+          </View>
         </View>
+
+        {/* Greeting */}
+        <Text style={styles.greeting}>{getGreeting()}{'\n'}Voici votre nuit.</Text>
 
         {/* Filters */}
         <View style={styles.filters}>
@@ -99,45 +125,43 @@ export default function HomeScreen() {
 
         <View style={styles.divider} />
 
-        {/* Recommended */}
+        {/* Recommended - hero treatment */}
         {eventLoading && (
           <View style={styles.sectionLoading}>
-            <ActivityIndicator color="#a78bfa" />
+            <ActivityIndicator color={colors.accent} />
           </View>
         )}
 
         {!eventLoading && randomEvent && (
-          <>
-            <SectionTitle title="RECOMMANDÉ POUR TOI" color={colors.textMuted} />
-            <Pressable
-              style={styles.recommendedCard}
-              onPress={() => router.push(`/(tabs)/screens/event/${randomEvent.event_id}`)}
-            >
-              {randomEvent.image_url ? (
-                <RemoteImage
-                  uri={randomEvent.image_url}
-                  size={0}
-                  borderRadius={0}
-                  style={styles.largeImagePlaceholder}
-                />
-              ) : (
-                <View style={styles.largeImagePlaceholder}>
-                  <Text style={styles.placeholderText}>[image artiste]</Text>
-                </View>
-              )}
-
-              <View style={styles.recommendedContent}>
-                <Text style={styles.artistName}>
-                  {randomEvent.artist_name ?? randomEvent.event_name}
-                </Text>
-                <Text style={styles.eventMeta}>
-                  {randomEvent.venue_name}
-                  {randomEvent.venue_name ? ' · ' : ''}
-                  {formatEventDateTime(randomEvent.starts_at)}
-                </Text>
+          <Pressable
+            style={styles.heroCard}
+            onPress={() => router.push(`/(tabs)/screens/event/${randomEvent.event_id}`)}
+          >
+            {randomEvent.image_url ? (
+              <RemoteImage
+                key={randomEvent.image_url}
+                uri={randomEvent.image_url}
+                size={0}
+                borderRadius={0}
+                style={styles.heroImage}
+              />
+            ) : (
+              <View style={styles.heroImage}>
+                <Text style={styles.placeholderText}>[image artiste]</Text>
               </View>
-            </Pressable>
-          </>
+            )}
+
+            <View style={styles.heroOverlay}>
+              <Text style={styles.heroTitle} numberOfLines={2}>
+                {randomEvent.artist_name ?? randomEvent.event_name}
+              </Text>
+              <Text style={styles.heroMeta}>
+                {randomEvent.venue_name}
+                {randomEvent.venue_name ? ' · ' : ''}
+                {formatEventDateTime(randomEvent.starts_at)}
+              </Text>
+            </View>
+          </Pressable>
         )}
 
         {/* Friends */}
@@ -189,6 +213,7 @@ export default function HomeScreen() {
                 >
                   {item.image_url ? (
                     <RemoteImage
+                      key={item.image_url}
                       uri={item.image_url}
                       size={0}
                       borderRadius={16}
@@ -220,16 +245,28 @@ function createStyles(colors: ThemeColors) {
     header: {
       height: 88,
       paddingHorizontal: 20,
-      paddingTop: 28,
+      paddingTop: 56,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
+    },
+    headerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
     },
     logo: {
       fontSize: 30,
       fontWeight: '600',
       color: colors.text,
       letterSpacing: -1,
+    },
+    iconButton: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     profileButton: {
       width: 36,
@@ -242,7 +279,16 @@ function createStyles(colors: ThemeColors) {
     profileIcon: {
       fontSize: 20,
       color: colors.accent,
-      marginTop: -8,
+      marginTop: 0,
+    },
+    greeting: {
+      fontSize: 26,
+      fontWeight: '600',
+      color: colors.text,
+      lineHeight: 32,
+      paddingHorizontal: 20,
+      marginTop: 6,
+      marginBottom: 18,
     },
     filters: {
       flexDirection: 'row',
@@ -271,53 +317,54 @@ function createStyles(colors: ThemeColors) {
     filterTextActive: {
       color: colors.bg,
     },
+    heroCard: {
+      marginHorizontal: 20,
+      marginBottom: 8,
+      borderRadius: 22,
+      overflow: 'hidden',
+      aspectRatio: 4 / 5,
+      backgroundColor: colors.surface,
+    },
+    heroImage: {
+      width: '100%',
+      height: '100%',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    placeHolderText: {
+      fontSize: 14,
+      fontStyle: 'italic',
+      color: colors.textMuted,
+    },
+    heroOverlay: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      paddingHorizontal: 18,
+      paddingTop: 40,
+      paddingBottom: 18,
+      backgroundColor: `${colors.bg}E6`,
+    },
+    heroTitle: {
+      fontSize: 22,
+      fontWeight: '600',
+      color: colors.text,
+      marginBottom: 4,
+    },
+    heroMeta: {
+      fontSize: 13,
+      color: colors.textMuted,
+    },
     divider: {
       height: 1,
       backgroundColor: colors.divider,
       marginBottom: 4,
     },
-    sectionTitle: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: colors.textMuted,
-      letterSpacing: 0.3,
-      marginTop: 20,
-      marginBottom: 9,
-      paddingHorizontal: 20,
-    },
     sectionLoading: { paddingVertical: 30, alignItems: 'center' },
-    recommendedCard: {
-      marginHorizontal: 20,
-      borderRadius: 18,
-      borderWidth: 1,
-      borderColor: colors.divider,
-      overflow: 'hidden',
-      backgroundColor: colors.surface,
-    },
-    largeImagePlaceholder: {
-      height: 145,
-      width: '100%',
-      backgroundColor: colors.surface,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
     placeholderText: {
       fontSize: 14,
       fontStyle: 'italic',
-      color: colors.textMuted,
-    },
-    recommendedContent: {
-      paddingHorizontal: 14,
-      paddingVertical: 14,
-    },
-    artistName: {
-      fontSize: 18,
-      fontWeight: '600',
-      color: colors.text,
-      marginBottom: 4,
-    },
-    eventMeta: {
-      fontSize: 14,
       color: colors.textMuted,
     },
     friendCard: {
@@ -344,6 +391,8 @@ function createStyles(colors: ThemeColors) {
       position: 'absolute',
       borderWidth: 2,
       borderColor: colors.surface,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     avatarOne: {
       left: 0,
