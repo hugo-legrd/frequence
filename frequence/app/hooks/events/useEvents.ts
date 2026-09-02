@@ -22,6 +22,7 @@ export type Event = {
     name: string; 
     image_url: string | null;
   } | null;
+  genres: string[];
 };
 
 function getDateRange(dateFilter: string): { from: string; to: string} | null {
@@ -98,7 +99,8 @@ export function useEvents(filters?: Filters) {
       .select(`
           id, name, starts_at, image_url, ticket_link, source,
           venues (id, name, address, latitude, longitude),
-          artists (id, name, image_url)
+          artists (id, name, image_url),
+          event_genres ( genres ( name ) )
         `)
         .order('starts_at', { ascending: true })
         .not('starts_at', 'is', null)
@@ -121,6 +123,9 @@ export function useEvents(filters?: Filters) {
         ...e,
         venue: e.venues ?? null,
         artist: e.artists ?? null,
+        genres: (e.event_genres ?? [])
+          .map((eg: any) => eg.genres?.name)
+          .filter(Boolean),
       }));
 
 

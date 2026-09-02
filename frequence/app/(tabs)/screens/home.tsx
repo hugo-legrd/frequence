@@ -47,6 +47,16 @@ function formatEventDateTime(iso: string | null): string {
   }).replace(',', ' ·');
 }
 
+const MAX_HERO_GENRES = 2;
+
+function formatHeroMeta(venueName: string | null, startsAt: string | null, genreNames: string[] | null): string {
+  const parts = [venueName, formatEventDateTime(startsAt)].filter(Boolean);
+  if (genreNames && genreNames.length > 0){
+    parts.push(genreNames.slice(0, MAX_HERO_GENRES).join(', '));
+  }
+  return parts.join(' · ');
+}
+
 const FILTERS = ['Près de moi', 'Ce soir', 'Gratuit'] as const;
 
 const styles_sectionTitleBase = {
@@ -156,9 +166,7 @@ export default function HomeScreen() {
                 {randomEvent.artist_name ?? randomEvent.event_name}
               </Text>
               <Text style={styles.heroMeta}>
-                {randomEvent.venue_name}
-                {randomEvent.venue_name ? ' · ' : ''}
-                {formatEventDateTime(randomEvent.starts_at)}
+                {formatHeroMeta(randomEvent.venue_name, randomEvent.starts_at, randomEvent.genre_names)}
               </Text>
             </View>
           </Pressable>

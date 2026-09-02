@@ -5,6 +5,7 @@ export type RandomEvent ={
   venue_name: string | null;
   starts_at: string | null;
   image_url: string | null;
+  genre_names: string[] | null;
 };
 
 export type FriendsPick = {

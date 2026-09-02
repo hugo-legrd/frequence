@@ -68,6 +68,11 @@ export default function ConcertsScreen() {
                 {item.venue?.name}
                 {item.venue?.address ? `· ${item.venue.address}` : ''}
               </Text>
+              { item.genres.length > 0 && (
+                <Text style={styles.genres} numberOfLines={1}>
+                  {item.genres.join(' · ')}
+                </Text>
+              )}
               {item.starts_at && (
                 <Text style={styles.date}>
                   {new Date(item.starts_at).toLocaleDateString('fr-FR', {
@@ -156,6 +161,11 @@ function createStyles(colors: ThemeColors) {
   meta: {
     fontSize: 13,
     color: colors.textMuted,
+  },
+  genres: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 1,
   },
   date: {
     fontSize: 12,
