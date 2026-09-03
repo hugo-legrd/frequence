@@ -1,283 +1,154 @@
-import { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  Pressable,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { useState, useRef } from 'react';
+import { View, Text, TextInput, Pressable } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '../../lib/services/supabase';
+import { makeStyles } from '../../lib/theme/makeStyles';
+import { authErrorMessage } from '../../lib/auth/authErrors';
+import { isValidEmail, normalizeEmail } from '../../lib/auth/validators';
+import { useGoogleAuth } from '../../lib/auth/useGoogleAuth';
+import { routeAfterAuth } from '../../lib/auth/routeAfterAuth';
+import { AuthScreen } from '../components/auth/AuthScreen';
+import { AuthHeader } from '../components/auth/AuthHeader';
+import { Field } from '../components/auth/Field';
+import { PrimaryButton } from '../components/auth/PrimaryButton';
+import { GoogleButton } from '../components/auth/GoogleButton';
+import { Divider } from '../components/auth/Divider';
+import { Banner } from '../components/auth/Banner';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
 
+
+type Errors = { email?: string; password?: string; form?: string };
+
 export default function LoginScreen() {
+  const s = useStyles();
+  const { registered } = useLocalSearchParams<{ registered?: string}>();
+  const passwordRef = useRef<TextInput>(null);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [emailFocused, setEmailFocused] = useState(false);
-  const [passwordFocused, setPasswordFocused] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Errors>({});
+  const [loading, setLoading] = useState<'password' | 'google' | null>(null);
+
+  const signInWithGoogle = useGoogleAuth();
+  const canSubmit = isValidEmail(email) && password.length > 0;
+
+  function fail(next: Errors) {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    setErrors(next);
+  }
 
   async function signIn() {
-    if (!email || !password) {
-      Alert.alert('Erreur', 'Merci de remplir tous les champs.');
-      return;
-    }
-    setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
+    if (!isValidEmail(email)) return fail({email: 'Adresse email invalide'});
+    if (!password) return fail({ password: 'Entre ton mot de passe. '});
+    
+    setErrors({});
+    setLoading('password');
+    const { error } = await supabase.auth.signInWithPassword({
+      email: normalizeEmail(email), 
+      password });
+    setLoading(null);
 
-    if (error) {
-      Alert.alert('Erreur', error.message); 
-      return;
-    }
+    if (error) return fail({ form: authErrorMessage(error)});
 
-    // Vérifier si l'onboarding est fait
-    const userId = data.session?.user.id;
-    const onboardingDone = await AsyncStorage.getItem(`onboarding_done_${userId}`);
-
-    if (!onboardingDone) {
-      router.replace('/onboarding/genres');
-    } else {
-      router.replace('/(tabs)/screens/home');
-    }
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    await routeAfterAuth();
   }
 
-  WebBrowser.maybeCompleteAuthSession();
+  async function handleGoogle() {
+    setErrors({});
+    setLoading('google');
+    const result = await signInWithGoogle();
+    setLoading(null);
 
-  async function signInWithGoogle() {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { 
-          redirectTo: 'frequence://auth/callback',
-          skipBrowserRedirect: true,
-        },
-      });
-
-      if (error) throw error;
-      if (!data.url) throw new Error('No URL returned');
-
-      const result = await WebBrowser.openAuthSessionAsync(
-        data.url,
-        'frequence://auth/callback'
-      );
-
-      if (result.type === 'success') {
-        const { url } = result;
-        await supabase.auth.exchangeCodeForSession(url);
-      } 
-    } catch (err: any) {
-      Alert.alert('Erreur', err.message);
-    } finally {
-      setLoading(false);
-    }
+    if (result.ok) return routeAfterAuth();
+    if (!result.cancelled && result.error) fail({ form: result.error });
   }
-
+  
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      {/* Halo ambiant violet*/}
-      <LinearGradient
-        colors={['rgba(167, 139, 250, 0.5)', 'transparent']}
-        pointerEvents='none'
-        style={{
-          position: 'absolute',
-          width: 350,
-          height: 400,
-          borderRadius: 175,
-          top: '30%',
-          alignSelf: 'center',
-        }}
-      >
-      </LinearGradient>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        {/* Logo */}
-        <View style={styles.top}>
-          <Text style={styles.logo}>
-            fréquence<Text style={styles.logoDot}>.</Text>
-          </Text>
-          <Text style={styles.tagline}>La musique underground près de toi</Text>
-        </View>
+    <AuthScreen>
+      <AuthHeader subtitle="La musique underground près de toi" />
+      <Animated.View entering={FadeInDown.delay(80).duration(420)} style={s.form}>
+        {registered === '1' && !errors.form && (
+          <Banner tone="success" message="Compte créé! Connecte-toi avec tes identifiants." />
+        )}
+        {!!errors.form && <Banner message={errors.form} />}
 
-        {/* Formulaire */}
-        <View style={styles.middle}>
-          <TextInput
-            style={[styles.input, emailFocused && styles.inputFocused]}
-            placeholder="Email"
-            placeholderTextColor="#3a3a3a"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={email}
-            onChangeText={setEmail}
-            onFocus={() => setEmailFocused(true)}
-            onBlur={() => setEmailFocused(false)}
-          />
-          <TextInput
-            style={[styles.input, passwordFocused && styles.inputFocused]}
-            placeholder="Mot de passe"
-            placeholderTextColor="#3a3a3a"
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-            onFocus={() => setPasswordFocused(true)}
-            onBlur={() => setPasswordFocused(false)}
-          />
+        <Field 
+          label="Email"
+          value={email}
+          onChangeText={(v) => { setEmail(v); setErrors({}); }}
+          error={errors.email}
+          keyboardType="email-address"
+          autoCapitalize='none'
+          autoComplete='email'
+          textContentType='emailAddress'
+          inputMode='email'
+          returnKeyType='next'
+          onSubmitEditing={() => passwordRef.current?.focus()}
+          submitBehavior='submit'
+        />
 
-          <Pressable onPress={() => router.push('/(auth)/forgot-password')}>
-            <Text style={styles.forgot}>Mot de passe oublié?</Text>
-          </Pressable>
+        <Field
+          ref={passwordRef}
+          label="Mot de passe"
+          value={password}
+          onChangeText={(v) => { setPassword(v); setErrors({}); }}
+          error={errors.password}
+          secure
+          autoCapitalize='none'
+          autoComplete='current-password'
+          textContentType='password'
+          returnKeyType='go'
+          onSubmitEditing={signIn}
+        />
 
-          <Pressable style={[styles.btnPrimary, loading && { opacity: 0.6 }]}
-            onPress={signIn}
-            disabled={loading}>
-              {loading
-                ? <ActivityIndicator color="#0f0F0F" />
-                : <Text style={styles.btnPrimaryText}>Se connecter</Text>
-          }
-          </Pressable>
+        <Pressable
+          hitSlop={10}
+          onPress={() => router.push('/(auth)/forgot-password')}
+          accessibilityRole='button'
+        >
+          <Text style={s.forgot}>Mot de passe oublié</Text>
+        </Pressable>
 
-          {/* Divider */}
-          <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>ou</Text>
-            <View style={styles.dividerLine} />
-          </View>
+        <PrimaryButton
+          label="Se connecter"
+          onPress={signIn}
+          loading={loading === 'password'}
+          disabled={!canSubmit || loading !== null}
+        />
 
-          {/* Google */}
-          <Pressable style={[styles.btnGoogle, loading && { opacity: 0.6 }]}
-            onPress={signInWithGoogle}
-            disabled={loading}
-          >
-            <Text style={styles.btnGoogleText}>Continuer avec Google</Text>
-          </Pressable>
-        </View>
+        <Divider />
 
-        <View style={styles.bottom}>
-          <Text style={styles.signupText}>Pas encore de compte ? </Text>
-          <Pressable onPress={() => router.push('/(auth)/register')}>
-            <Text style={styles.signupLink}>S'inscrire</Text>
-          </Pressable>
-        </View>
+        <GoogleButton 
+          onPress={handleGoogle}
+          loading={loading === 'google'}
+          disabled={loading !== null}
+        />
+      </Animated.View>
 
-      </ScrollView>
-
-    </KeyboardAvoidingView>
+      <View style={s.bottom}>
+        <Text style={s.bottomText}>Pas encore de compte ? </Text>
+        <Pressable hitSlop={10} onPress={() => router.push('/(auth)/register')}>
+          <Text style={s.bottomLink}>S'inscrire</Text>
+        </Pressable>
+      </View>
+    </AuthScreen>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0f0f0f',
-  },
-  scroll: {
-    flexGrow: 1,
-    paddingHorizontal: 32,
-    paddingTop: 120,
-    paddingBottom: 48,
-  },
-  top: {
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 48,
-  },
-  logo: {
-    fontSize: 42,
-    fontWeight: '300',
-    color: '#e5e5e5',
-    letterSpacing: -1.5,
-  },
-  logoDot: {
-    color: 'rgb(167, 139, 250)',
-  },
-  tagline: {
-    fontSize: 13,
-    color: '#555555',
-    letterSpacing: 0.5,
-  },
-  middle: {
-    gap: 12,
-  },
-  input: {
-    backgroundColor: '#171717',
-    borderWidth: 1,
-    borderColor: '#1e1e1e',
-    borderRadius: 12,
-    padding: 15,
-    fontSize: 14,
-    color: '#e5e5e5',
-  },
-  inputFocused: {
-    borderColor: '#a78bfa',
-  },
-  forgot: {
-    fontSize: 12,
-    color: '#555555',
-    textAlign: 'right',
-    marginTop: -4,
-  },
-  btnPrimary: {
-    backgroundColor: '#a78bfa',
-    borderRadius: 12,
-    padding: 15,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  btnPrimaryText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#0f0f0f',
-  },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginVertical: 4,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#1e1e1e',
-  },
-  dividerText: {
-    fontSize: 11,
-    color: '#3a3a3a',
-  },
-  btnGoogle: {
-    borderWidth: 1,
-    borderColor: '#1e1e1e',
-    borderRadius: 12,
-    padding: 15,
-    alignItems: 'center',
-  },
-  btnGoogleText: {
-    fontSize: 14,
-    color: '#e5e5e5',
-  },
+const useStyles = makeStyles((c) => ({
+  form: { gap: 12 },
+  forgot: { fontSize: 12, color: c.textMuted, textAlign: 'right', marginTop: -2 },
   bottom: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 32,
+    marginTop: 'auto',
+    paddingTop: 36,
   },
-  signupText: {
-    fontSize: 13,
-    color: '#555555',
-  },
-  signupLink: {
-    fontSize: 13,
-    color: '#a78bfa',
-    fontWeight: '500',
-  },
-});
-
+  bottomText: { fontSize: 13, color: c.textMuted },
+  bottomLink: { fontSize: 13, color: c.accent, fontWeight: '600' },
+}));

@@ -1,364 +1,206 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   View,
   Text,
   TextInput,
   Pressable,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { supabase } from '../../lib/services/supabase';
-import * as WebBrowser from 'expo-web-browser';
+import { makeStyles } from '../../lib/theme/makeStyles';
+import { authErrorMessage } from '../../lib/auth/authErrors';
+import { isValidEmail, normalizeEmail } from '../../lib/auth/validators';
+import { useGoogleAuth } from '../../lib/auth/useGoogleAuth';
+import { routeAfterAuth } from '../../lib/auth/routeAfterAuth';
+import { AuthScreen } from '../components/auth/AuthScreen';
+import { AuthHeader } from '../components/auth/AuthHeader';
+import { Field } from '../components/auth/Field';
+import { PrimaryButton } from '../components/auth/PrimaryButton';
+import { GoogleButton } from '../components/auth/GoogleButton';
+import { Divider } from '../components/auth/Divider';
+import { Banner } from '../components/auth/Banner';
+import { PasswordRules } from '../components/auth/PasswordRules';
+
+type Errors = { firstName?: string; email?: string; password?: string; form?: string };
 
 export default function RegisterScreen() {
+  const s = useStyles();
+  const lastNameRef = useRef<TextInput>(null);
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const [firstNameFocused, setFirstNameFocused] = useState(false);
-  const [lastNameFocused, setLastNameFocused] = useState(false);
-  const [emailFocused, setEmailFocused] = useState(false);
+  const [errors, setErrors] = useState<Errors>({});
+  const [loading, setLoading] = useState<'password' | 'google' | null>(null);
   const [passwordFocused, setPasswordFocused] = useState(false);
-  
-  async function signUp() {
-    if (!firstName || !email || !password) {
-      Alert.alert('Erreur', 'Merci de remplir tous les champs obligatoires.');
-      return;
-    }
-    if (password.length < 8) {
-      Alert.alert('Erreur', 'Le mot de passe doit contenir au moins 8 caractères.');
-      return;
-    }
 
-    setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          first_name: firstName,
-          last_name: lastName,
-        },
-      },
-    });
-    setLoading(false);
+  const signInWithGoogle = useGoogleAuth();
 
-    if (error) {
-      Alert.alert('Erreur', error.message);
-    } else { 
-      router.replace('/(auth)/login');
-      Alert.alert(
-        'Compte créé !',
-        'Connecte-toi avec tes identifiants.'
-      );
-    }
+  function fail(next: Errors) {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    setErrors(next);
   }
 
-  WebBrowser.maybeCompleteAuthSession();
-
-  async function signInWithGoogle() {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { 
-          redirectTo: 'frequence://auth/callback',
-          skipBrowserRedirect: true,
-        },
-      });
-
-      if (error) throw error;
-      if (!data.url) throw new Error('No URL returned');
-
-      const result = await WebBrowser.openAuthSessionAsync(
-        data.url,
-        'frequence://auth/callback',
-      );
-
-      if (result.type === 'success') {
-        const { url } = result;
-        await supabase.auth.exchangeCodeForSession(url);
-      }
-    } catch (err: any) {
-        Alert.alert('Erreur', err.message);
-    } finally {
-      setLoading(false);
+  async function signUp() {
+    if (!firstName.trim()) return fail({ firstName: 'Ton prénom est requis.'});
+    if (!isValidEmail(email)) {
+      emailRef.current?.focus();
+      return fail({ email: 'Adresse email invalide.'})
     }
+    if (password.length < 8) {
+      passwordRef.current?.focus();
+      return fail({ password: 'Au moins 8 caractères.'});
+    }  
+    
+    setErrors({});
+    setLoading('password');
+    const { error } = await supabase.auth.signUp({
+      email: normalizeEmail(email),
+      password,
+      options: {
+        data: { first_name: firstName.trim(), last_name: lastName.trim() },
+      },
+    });
+    setLoading(null);
+
+    if (error) return fail({ form: authErrorMessage(error) });
+
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    router.replace({ pathname: '/(auth)/login', params: { registered: '1' } });
+  }
+
+  async function handleGoogle(){
+    setErrors({});
+    setLoading('google');
+    const result = await signInWithGoogle();
+    setLoading(null);
+
+    if (result.ok) return routeAfterAuth();
+    if (!result.cancelled && result.error) fail({ form: result.error });
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <LinearGradient
-          colors={['rgba(167,139,250,0.5)', 'transparent']}
-          pointerEvents="none"
-          style={styles.halo}
+    <AuthScreen onBack={() => router.back()}>
+      <AuthHeader subtitle="Crée ton compte" compact />
+
+      <Animated.View entering={FadeInDown.delay(80).duration(420)} style={s.form}>
+        {!!errors.form && <Banner message={errors.form} />}
+
+        <View style={s.row}>
+          <Field
+            half
+            label="Prénom"
+            value={firstName}
+            onChangeText={(v) => { setFirstName(v); setErrors({}); }}
+            error={errors.firstName}
+            autoCapitalize="words"
+            autoComplete="given-name"
+            textContentType="givenName"
+            returnKeyType='next'
+            onSubmitEditing={() => lastNameRef.current?.focus()}
+            submitBehavior='submit'
+          />
+          <Field
+            half
+            ref={lastNameRef}
+            label="Nom"
+            value={lastName}
+            onChangeText={setLastName}
+            autoCapitalize='words'
+            autoComplete='family-name'
+            textContentType='familyName'
+            returnKeyType="next"
+            onSubmitEditing={() => emailRef.current?.focus()}
+            submitBehavior='submit'
+          />
+        </View>
+
+        <Field
+          ref={emailRef}
+          label="Email"
+          value={email}
+          onChangeText={(v) => { setEmail(v); setErrors({}); }}
+          error={errors.email}
+          keyboardType="email-address"
+          autoCapitalize='none'
+          autoComplete='email'
+          textContentType='emailAddress'
+          inputMode='email'
+          returnKeyType="next"
+          onSubmitEditing={() => passwordRef.current?.focus()}
+          submitBehavior='submit'
         />
 
-        <ScrollView 
-          contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
-          style={{ zIndex:1 }}>
-            {/* Retour */}
-            <Pressable style={styles.back} onPress={() => router.back()}>
-              <Text style={styles.backArrow}>←</Text>
-              <Text style={styles.backText}>Retour</Text>
-            </Pressable>
+        <View>
+          <Field
+            ref={passwordRef}
+            label="Mot de passe"
+            value={password}
+            onChangeText={(v) => { setPassword(v); setErrors({}); }}
+            error={errors.password}
+            secure
+            onFocusChange={setPasswordFocused}
+            autoCapitalize='none'
+            autoComplete='new-password'
+            textContentType='newPassword'
+            passwordRules="minlength: 8; required: lower; required: upper; required: digit;"
+            returnKeyType='go'
+            onSubmitEditing={signUp}
+          />
+          <PasswordRules 
+            password={password}
+            visible={passwordFocused || (password.length > 0 && password.length < 8)}
+          />
+        </View>
 
-            {/* Logo */}
-            <View style={styles.top}>
-              <Text style={styles.logo}>
-                fréquence<Text style={styles.logoDot}>.</Text>
-              </Text>
-              <Text style={styles.subtitle}>Crée ton compte</Text>
-            </View>
+        <PrimaryButton
+          label="Créer ton compte"
+          onPress={signUp}
+          loading={loading === 'password'}
+          disabled={loading !== null}
+        />
 
-            {/* Formulaire */}
-            <View style={styles.middle}>
-              <View style={styles.nameRow}>
-                <TextInput
-                  style={[styles.input, styles.inputHalf, firstNameFocused && styles.inputFocused]}
-                  placeholder="Prénom"
-                  placeholderTextColor="#3a3a3a"
-                  autoCapitalize="words"
-                  value={firstName}
-                  onChangeText={setFirstName}
-                  onFocus={() => setFirstNameFocused(true)}
-                  onBlur={() => setFirstNameFocused(false)}
-                />
-                <TextInput
-                  style={[styles.input, styles.inputHalf, lastNameFocused && styles.inputFocused]}
-                  placeholder="Nom"
-                  placeholderTextColor="#3a3a3a"
-                  autoCapitalize="words"
-                  value={lastName}
-                  onChangeText={setLastName}
-                  onFocus={() => setLastNameFocused(true)}
-                  onBlur={() => setLastNameFocused(false)}
-                />
-              </View>
+        <Divider />
 
-              <TextInput
-                style={[styles.input, emailFocused && styles.inputFocused]}
-                placeholder="Email"
-                placeholderTextColor="#3a3a3a"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={email}
-                onChangeText={setEmail}
-                onFocus={() => setEmailFocused(true)}
-                onBlur={() => setEmailFocused(false)}
-              />
+        <GoogleButton
+          onPress={handleGoogle}
+          loading={loading === 'google'}
+          disabled={loading !== null}
+        />
 
-              <View>
-                <TextInput
-                  style={[styles.input, passwordFocused && styles.inputFocused]}
-                  placeholder="Mot de passe"
-                  placeholderTextColor="#3a3a3a"
-                  secureTextEntry
-                  value={password}
-                  onChangeText={setPassword}
-                  onFocus={() => setPasswordFocused(true)}
-                  onBlur={() => setPasswordFocused(false)}
-                />
-                <Text style={styles.hint}>8 caractères minimum</Text>
-              </View>
+        <Text style={s.terms}>
+          En créant un compte, tu acceptes nos <Text style={s.termsLink}>CGU</Text> et notre{' '}
+          <Text style={s.termsLink}>politique de confidentialité</Text>
+        </Text>
+      </Animated.View>
 
-              <Pressable
-                style={[styles.btnPrimary, loading && { opacity: 0.6 }]}
-                onPress={signUp}
-                disabled={loading}
-              >
-                {loading
-                  ? <ActivityIndicator color="0f0f0f"/>
-                  : <Text style={styles.btnPrimaryText}>Créer mon compte</Text>
-                }
-              </Pressable>
-
-              <View style={styles.dividerRow}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>ou</Text>
-                <View style={styles.dividerLine} />
-              </View>
-
-              <Pressable
-                style={[styles.btnGoogle, loading && { opacity: 0.6 }]}
-                onPress={signInWithGoogle}
-                disabled={loading}
-              >
-                <Text style={styles.btnGoogleText}>Continuer avec Google</Text>
-              </Pressable>
-
-              <Text style={styles.terms}>
-                En créant un compte, tu accepts nos{' '}
-                <Text style={styles.termsLink}>CGU</Text>
-                {' '}et notre{' '}
-                <Text style={styles.termsLink}>politique de confidentialité</Text>
-              </Text>
-            </View>
-
-            {/* Login */}
-            <View style={styles.bottom}>
-              <Text style={styles.loginText}>Déjà un compte ?</Text>
-              <Pressable onPress={() => router.replace('/(auth)/login')}>
-                <Text style={styles.loginLink}> Se connecter</Text>
-              </Pressable>
-            </View>
-          </ScrollView>
-    </KeyboardAvoidingView>
+      <View style={s.bottom}>
+        <Text style={s.bottomText}>Déjà un compte?</Text>
+        <Pressable hitSlop={10} onPress={() => router.replace('/(auth)/login')}>
+          <Text style={s.bottomLink}> Se connecter</Text>
+        </Pressable>
+      </View>
+    </AuthScreen>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0f0f0f'
-  },
-  halo: {
-    position: 'absolute',
-    width: 350,
-    height: 350,
-    borderRadius: 175,
-    top: '30%',
-    alignSelf: 'center',
-  },
-  scroll: {
-    flexGrow: 1,
-    paddingHorizontal: 32,
-    paddingTop: 80,
-    paddingBottom: 48,
-  },
-  back: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  backArrow: {
-    fontSize: 16,
-    color: '#555555',
-  },
-  backText: {
-    fontSize: 13,
-    color: '#555555',
-  },
-  top: {
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 24,
-    marginBottom: 32,
-  },
-  logo: {
-    fontSize: 36,
-    fontWeight: '300',
-    color: '#e5e5e5',
-    letterSpacing: -1.5,
-  },
-  logoDot: {
-    color: '#a78bfa',
-  },
-  subtitle: {
-    fontSize: 13,
-    color: '#555555',
-    letterSpacing: 0.3,
-  },
-  middle: {
-    gap: 12,
-  },
-  nameRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  input: {
-    backgroundColor: '#171717',
-    borderWidth: 1,
-    borderColor: '#1e1e1e',
-    borderRadius: 12,
-    padding: 15,
-    fontSize: 14,
-    color: '#e5e5e5',
-  },
-  inputHalf: {
-    flex: 1,
-  },
-  inputFocused: {
-    borderColor: '#a78bfa',
-  },
-  hint: {
-    fontSize: 11,
-    color: '#3a3a3a',
-    marginTop: 6,
-    paddingLeft: 4,
-  },
-  btnPrimary: {
-    backgroundColor: '#a78bfa',
-    borderRadius: 12, 
-    padding: 15,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  btnPrimaryText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#0f0f0f',
-  },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginVertical: 2,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#1e1e1e',
-  },
-  dividerText: {
-    fontSize: 11,
-    color: '#3a3a3a',
-  },
-  btnGoogle: {
-    borderWidth: 1,
-    borderColor: '#1e1e1e',
-    borderRadius: 12,
-    padding: 15,
-    alignItems: 'center',
-  },
-  btnGoogleText: {
-    fontSize: 14,
-    color: '#e5e5e5',
-  },
-  terms: {
-    fontSize: 11,
-    color: '#3a3a3a',
-    textAlign: 'center',
-    lineHeight: 18,
-    marginTop: -4, 
-  },
-  termsLink: {
-    color: '#555555'
-  },
+const useStyles = makeStyles((c) => ({
+  form: { gap: 12 },
+  row: { flexDirection: 'row', gap: 10 },
+  terms: { fontSize: 11, color: c.textMuted, textAlign: 'center', lineHeight: 17, marginTop: 4 },
+  termsLink: { color: c.text, textDecorationLine: 'underline' },
   bottom: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 32,
+    marginTop: 'auto',
+    paddingTop: 32,
   },
-  loginText: {
-    fontSize: 13,
-    color: '#555555',
-  },
-  loginLink: {
-    fontSize: 13,
-    color: '#a78bfa',
-    fontWeight: '500',
-  },
-});
+  bottomText: { fontSize: 13, color: c.textMuted },
+  bottomLink: { fontSize: 13, color: c.accent, fontWeight: '600' },
+}));

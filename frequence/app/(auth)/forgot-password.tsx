@@ -1,187 +1,132 @@
 import { useState } from 'react'; 
-import { View, Text, TextInput, Pressable, StyleSheet, Alert, ActivityIndicator } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { supabase } from '../../lib/services/supabase';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { useTheme } from '../../lib/theme/ThemeContext';
+import { Ionicons } from '@expo/vector-icons';
+import { makeStyles } from '../../lib/theme/makeStyles';
+import { authErrorMessage } from '../../lib/auth/authErrors';
+import { isValidEmail, normalizeEmail } from '../../lib/auth/validators';
+import { AuthScreen } from '../components/auth/AuthScreen';
+import { AuthHeader } from '../components/auth/AuthHeader';
+import { Field } from '../components/auth/Field';
+import { PrimaryButton } from '../components/auth/PrimaryButton';
+import { Banner } from '../components/auth/Banner';
+
+const RESET_REDIRECT = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/auth/v1/verify`;
 
 export default function ForgotPasswordScreen() {
+  const s = useStyles();
+  const { colors } = useTheme();
+
   const [email, setEmail] = useState('');
-  const [emailFocused, setEmailFocused] = useState(false);
+  const [fieldError, setFieldError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
   async function handleReset() {
-    if (!email) {
-      Alert.alert('Erreur', 'Entre ton adresse email.')
+    if (!isValidEmail(email)) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setFieldError('Adresse email invalide.');
       return;
     }
+
+    setFieldError(null);
+    setFormError(null);
     setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://spylszxexpakvblhpynq.supabase.co/auth/v1/verify',
+      redirectTo: RESET_REDIRECT,
     });
     setLoading(false);
 
     if (error) {
-      Alert.alert('Erreur', error.message);
-    } else {
-      setSent(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setFormError(authErrorMessage(error));
+      return;  
     }
-  }
+
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setSent(true);
+  }  
 
   return (
-    <View style={styles.container}>
-      <LinearGradient 
-        colors={['rgba(167,139,250,0.12)', 'transparent']}
-        pointerEvents='none'
-        style={styles.halo}
-      />
-
-      <Pressable style={styles.back} onPress={() => router.back()}>
-        <Text style={styles.backText}>← Retour</Text>
-      </Pressable>
-
-      <View style={styles.top}>
-        <Text style={styles.logo}>
-          fréquence<Text style={styles.logoDot}>.</Text>
-        </Text>
-        <Text style={styles.subtitle}>Mot de passe oublié</Text>
-      </View>
+    <AuthScreen onBack={() => router.back()}>
+      <AuthHeader subtitle="Mot de passe oublié" compact />
 
       {sent ? (
-        <View style={styles.successBox}>
-          <Text style={styles.successIcon}>✉️</Text>
-          <Text style={styles.successTitle}>Email envoyé !</Text>
-          <Text style={styles.successText}>
-              Vérifie ta boîte mail — ouvre le lien depuis un navigateur pour réinitialiser ton mot de passe. Cette fonctionnalité sera améliorée dans une prochaine version.          </Text>
-          <Pressable style={styles.btnPrimary} onPress={() => router.replace('/(auth)/login')}>
-            <Text style={styles.btnText}>Retour au login</Text>
-          </Pressable>
-        </View>
+        <Animated.View entering={FadeIn.duration(300)} style={s.success}>
+          <View style={s.successIcon}>
+            <Ionicons name="mail-outline" size={30} color={colors.accent} />
+          </View>
+          <Text style={s.successTitle}>Email envoyé</Text>
+          <Text style={s.successText}>
+            Un lien vient de partir vers {normalizeEmail(email)}. Ouvre-le depuis ton navigateur
+            pour choisir un nouveau mot de passe.
+          </Text>
+          <PrimaryButton
+            label="Retour à la connexion"
+            onPress={() => router.replace('/(auth)/login')}
+            style={{ alignSelf: 'stretch'}}
+          />
+        </Animated.View>
       ) : (
-        <View style={styles.middle}>
-          <Text style={styles.description}>
+        <Animated.View entering={FadeInDown.delay(80).duration(420)} style={s.form}>
+          <Text style={s.description}>
             Entre ton adresse email et on t'envoie un lien pour réinitialiser ton mot de passe.
           </Text>
-          <TextInput
-            style={[styles.input, emailFocused && styles.inputFocused]}
-            placeholder="Email"
-            placeholderTextColor="#3a3a3a"
-            keyboardType="email-address"
-            autoCapitalize="none"
+
+          {!!formError && <Banner message={formError} />}
+
+          <Field
+            label="Email"
             value={email}
-            onChangeText={setEmail}
-            onFocus={() => setEmailFocused(true)}
-            onBlur={() => setEmailFocused(false)}
+            onChangeText={(v) => { setEmail(v); setFieldError(null); setFormError(null); }}
+            error={fieldError}
+            keyboardType='email-address'
+            autoCapitalize='none'
+            autoComplete="email"
+            textContentType='emailAddress'
+            inputMode="email"
+            returnKeyType='send'
+            onSubmitEditing={handleReset}
           />
-          <Pressable
-            style={[styles.btnPrimary, loading && { opacity: 0.6}]}
+
+          <PrimaryButton
+            label="Envoyer le lien"
             onPress={handleReset}
-            disabled={loading}
-          >
-            {loading
-              ? <ActivityIndicator color="#0f0f0f" />
-              : <Text style={styles.btnText}>Envoyer le lien</Text>
-            }
-          </Pressable>
-        </View>
+            loading={loading}
+            disabled={!isValidEmail(email)}
+          />
+        </Animated.View>
       )}
-    </View>
+    </AuthScreen>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0f0f0f',
-    padding: 32,
-    paddingTop: 64,
-    paddingBottom: 48,
-  },
-  halo: {
-    position: 'absolute',
-    width: 350,
-    height: 350,
-    borderRadius: 175,
-    top: '35%',
-    alignSelf: 'center',
-    zIndex: -1,
-  },
-  back: { 
-    marginBottom: 32 
-  },
-  backText: { 
-    color: '#555555', 
-    fontSize: 13 
-  },
-  top: {
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 40,
-  },
-  logo: {
-    fontSize: 36,
-    fontWeight: '300',
-    color: '#e5e5e5',
-    letterSpacing: -1.5,
-  },
-  logoDot: {
-    color: '#a78bfa',
-  },
-  subtitle: {
-    fontSize: 13,
-    color: '#555555',
-  },
-  middle: {
-    gap: 16,
-  },
-  description: {
-    fontSize: 13,
-    color: '#555555',
-    lineHeight: 20,
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: '#171717',
-    borderWidth: 1,
-    borderColor: '#1e1e1e',
-    borderRadius: 12,
-    padding: 15,
-    fontSize: 14,
-    color: '#e5e5e5',
-  },
-  inputFocused: {
-    borderColor: '#a78bfa',
-  },
-  btnPrimary: {
-    backgroundColor: '#a78bfa',
-    borderRadius: 12,
-    padding: 15,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  btnText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#0f0f0f',
-  },
-  successBox: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 16,
-  },
+const useStyles = makeStyles((c) => ({
+  form: { gap: 14 },
+  description: { fontSize: 13, color: c.textMuted, lineHeight: 20 },
+  success: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 14, paddingBottom: 60 },
   successIcon: {
-    fontSize: 48,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: c.accentSoftBg,
+    borderWidth: 1,
+    borderColor: c.accentSoftBorder,
+    marginBottom: 4,
   },
-  successTitle: {
-    fontSize: 20,
-    fontWeight: '500',
-    color: '#e5e5e5',
-  },
+  successTitle: { fontSize: 20, fontWeight: '600', color: c.text },
   successText: {
     fontSize: 13,
-    color: '#555555',
+    color: c.textMuted,
     textAlign: 'center',
     lineHeight: 20,
+    marginBottom: 10,
   },
-});
+}));
