@@ -1,16 +1,14 @@
 import { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
-  ScrollView,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../lib/services/supabase';
+import { makeStyles } from '../../lib/theme/makeStyles';
+import { StepHeader, Accent } from '../components/StepHeader';
 import GenreChip from '../components/GenreChip';
+import { PrimaryButton } from '../components/auth/PrimaryButton';
 
 const GENRES = [
   'Techno', 'House', 'Hardgroove', 'Uptempo',
@@ -19,6 +17,8 @@ const GENRES = [
 ];
 
 export default function GenresScreen(){
+  const s = useStyles();
+  const insets = useSafeAreaInsets();
   const [selected, setSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [genreMap, setGenreMap] = useState<Record<string, string>>({});
@@ -35,6 +35,7 @@ export default function GenresScreen(){
   }, []);
 
   function toggle(genre: string) {
+    Haptics.selectionAsync();
     setSelected(prev => 
       prev.includes(genre)
         ? prev.filter(g => g!== genre)
@@ -70,29 +71,19 @@ export default function GenresScreen(){
   }
 
   return (
-    <View style={styles.container}>
-      {/* Barre de progression */}
-      <View style={styles.progress}>
-        <View style={[styles.bar, styles.barActive]} />
-        <View style={styles.bar} />
-        <View style={styles.bar} />
-      </View>
-
-      {/* Header */}
-      <View style={styles.top}>
-        <Text style={styles.step}>Étape 1 / 3</Text>
-        <Text style={styles.title}>
-          Quels sont tes{' '}
-          <Text style={styles.titleAccent}>genres</Text>
-          {' '}préférés ?
-        </Text>
-        <Text style={styles.subtitle}>
-          Sélectionne au moins 1 genre pour personnaliser ton expérience.
-        </Text>
-      </View>
-
+    <View
+      style={[
+        s.container, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 20 },
+      ]}
+    >
+      <StepHeader 
+        step={1}
+        total={2}
+        title={<>Quels sont tes <Accent>genres</Accent> préférés ?</>}
+        subtitle='Sélectionne au moins 1 genre pour personnaliser ton expérience.'
+      />
       {/* Genres */}
-      <ScrollView contentContainerStyle={styles.genres} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={s.genres} showsVerticalScrollIndicator={false}>
         {GENRES.map(genre => (
           <GenreChip
             key={genre}
@@ -104,125 +95,28 @@ export default function GenresScreen(){
       </ScrollView>
 
       {/* Footer */}
-      <View style={styles.bottom}>
-        <Text style={styles.counter}>
+      <View style={s.bottom}>
+        <Text style={s.counter}>
           {selected.length > 0
-            ? <Text><Text style={styles.counterAccent}>{selected.length}</Text> genre{selected.length > 1 ? 's' : ''} sélectionné{selected.length > 1 ? 's' : ''}</Text>
+            ? <Text><Text style={s.counterAccent}>{selected.length}</Text> genre{selected.length > 1 ? 's' : ''} sélectionné{selected.length > 1 ? 's' : ''}</Text>
             : 'Sélectionne au moins 1 genre'
           }
         </Text>
-        <Pressable
-          style={[styles.btnPrimary, selected.length === 0 && styles.btnDisabled]}
+        <PrimaryButton 
+          label="Continuer"
           onPress={handleContinue}
-          disabled={selected.length === 0 || loading}
-        >
-          {loading
-            ? <ActivityIndicator color="#0f0f0f" />
-            : <Text style={styles.btnText}>Continuer</Text>
-          }
-        </Pressable>
+          loading={loading}
+          disabled={selected.length === 0}
+        />
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0f0f0f',
-    paddingHorizontal: 32,
-    paddingTop: 64,
-    paddingBottom: 48,
-  },
-  progress: {
-    flexDirection: 'row',
-    gap: 6,
-    marginBottom: 48,
-  },
-  bar: {
-    flex: 1,
-    height: 2,
-    borderRadius: 2,
-    backgroundColor: '#1e1e1e',
-  },
-  barActive: {
-    backgroundColor: '#a78bfa',
-  },
-  top: {
-    marginBottom: 32,
-  },
-  step: {
-    fontSize: 11,
-    color: '#3a3a3a',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '300',
-    color: '#e5e5e5',
-    letterSpacing: -0.5,
-    lineHeight: 32,
-  },
-  titleAccent: {
-    color: '#a78bfa',
-  },
-  subtitle: {
-    fontSize: 13,
-    color: '#555555',
-    marginTop: 8,
-    lineHeight: 20,
-  },
-  genres: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  pill: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 100,
-    borderWidth: 1,
-    borderColor: '#1e1e1e',
-    backgroundColor: '#171717',
-  },
-  pillActive: {
-    backgroundColor: '#a78bfa',
-    borderColor: '#a78bfa',
-  },
-  pillText: {
-    fontSize: 13,
-    color: '#555555',
-  },
-  pillTextActive: {
-    color: '#0f0f0f',
-    fontWeight: '500',
-  },
-  bottom: {
-    marginTop: 32,
-    gap: 12,
-  },
-  counter: {
-    fontSize: 12,
-    color: '#3a3a3a',
-    textAlign: 'center',
-  },
-  counterAccent: {
-    color: '#a78bfa',
-  },
-  btnPrimary: {
-    backgroundColor: '#a78bfa',
-    borderRadius: 12,
-    padding: 15,
-    alignItems: 'center',
-  },
-  btnDisabled: {
-    opacity: 0.4,
-  },
-  btnText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#0f0f0f',
-  },
-});
+const useStyles = makeStyles((c) => ({
+  container: { flex: 1, backgroundColor: c.bg, paddingHorizontal: 28 },
+  genres: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingBottom: 24 },
+  bottom: { marginTop: 24, gap: 12 },
+  counter: { fontSize: 12, color: c.textMuted, textAlign: 'center' },
+  counterAccent: { color: c.accent, fontWeight: '600' },
+}));
