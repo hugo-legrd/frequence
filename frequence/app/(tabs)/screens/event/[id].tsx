@@ -9,15 +9,20 @@ import {
   Image,
   Share,
 } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
 import { useEffect, useState, useMemo } from 'react';
-import { supabase } from '../../../../lib/services/supabase';
-import type { EventDetail, InterestStatus } from '../../../../lib/types/event';
-import VenueMiniMap from '../../../components/MiniMap';
+
+import { useLocalSearchParams, router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import FriendsGoingRow from '../../../components/FriendsGoingRow';
+
+import { supabase } from '../../../../lib/services/supabase';
+import type { EventDetail } from '../../../../lib/types/event';
 import { useTheme } from '../../../../lib/theme/ThemeContext';
 import { ThemeColors } from '../../../../lib/theme/tokens';
+
+import VenueMiniMap from '../../../components/MiniMap';
+import FriendsGoingRow from '../../../components/FriendsGoingRow';
+
+import { useEventInterest } from '../../../hooks/events/useEventInterest';
 
 const CATEGORY_LABELS: Record<string, string> = {
   gig: 'Concert',
@@ -37,8 +42,7 @@ export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [interest, setInterest] = useState<InterestStatus>(null);
-  const [interestLoading, setInterestLoading] = useState(false);
+  const { status: interest, loading: interestLoading, setInterest } = useEventInterest(id);
   
   useEffect(() => {
     let cancelled = false;
@@ -62,35 +66,17 @@ export default function EventDetailScreen() {
       setLoading(false);
     }
 
-    async function fetchInterest() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user || cancelled) return;
-
-      const { data } = await supabase
-        .from('interests')
-        .select('status')
-        .eq('user_id', user.id)
-        .eq('event_id', id)
-        .single();
-
-      if (!cancelled) {
-        setInterest(data ? (data.status as InterestStatus) : null);
-      }
-    }
-
     setEvent(null);
     setLoading(true);
-    setInterest(null);
 
     fetchEvent();
-    fetchInterest();
 
     return () => {
       cancelled = true;
     };
   }, [id]);
 
-  async function handleInterest(status: InterestStatus) {
+  async function handleInterest(status: 'interested' | 'going') {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -98,25 +84,7 @@ export default function EventDetailScreen() {
       return;
     }
 
-    setInterestLoading(true);
-
-    if (interest === status) {
-      // Déselectionner
-      await supabase
-        .from('interests')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('event_id', id)
-      setInterest(null);
-     } else {
-      // Sélectionner ou changer
-      await supabase
-        .from('interests')
-        .upsert({ user_id: user.id, event_id: id, status });
-      setInterest(status);
-    }
-
-    setInterestLoading(false);
+    await setInterest(status);
   }
 
   async function handleShare() {
