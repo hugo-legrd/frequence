@@ -1,15 +1,16 @@
 import { useState } from 'react';
-import { 
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 import Slider from '@react-native-community/slider';
 import { router, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../lib/services/supabase';
+import { useTheme } from '../../lib/theme/ThemeContext';
+import { makeStyles } from '../../lib/theme/makeStyles';
+import { StepHeader, Accent } from '../components/StepHeader';
+import { PrimaryButton } from '../components/auth/PrimaryButton';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 const RADIUS_OPTIONS = [
   { value: 1, label: '1 km', description: 'Mon quartier' },
@@ -19,6 +20,10 @@ const RADIUS_OPTIONS = [
 ];
 
 export default function RadiusScreen() {
+  const s = useStyles();
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+
   const [index, setIndex] = useState(1); // 5 km par défaut
   const [loading, setLoading] = useState(false);
   const { userId, genreIds } = useLocalSearchParams<{ 
@@ -27,6 +32,13 @@ export default function RadiusScreen() {
   }>();
 
   const current = RADIUS_OPTIONS[index];
+
+  function handleSlide(value: number) {
+    const next = Math.round(value);
+    if (next === index) return;
+    Haptics.selectionAsync();
+    setIndex(next);
+  }
 
   async function handleContinue() {
     setLoading(true);
@@ -43,7 +55,7 @@ export default function RadiusScreen() {
         if (parsedIds.length > 0) {
           const rows = parsedIds.map(genre_id => ({ user_id: userId, genre_id }));
           const { error } = await supabase.from('user_genres').insert(rows);
-          console.log('🎵 user_genres insert error:', error);
+          if (error) throw error;
         }
 
         await AsyncStorage.setItem(`onboarding_done_${userId}`, 'true');
@@ -58,190 +70,87 @@ export default function RadiusScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      {/* Barre de progression */}
-      <View style={styles.progress}>
-        <View style={[styles.bar, styles.barActive]} />
-        <View style={[styles.bar, styles.barActive]} />
-        <View style={styles.bar} />
-      </View>
-
-      {/* Header */}
-      <View style={styles.top}>
-        <Text style={styles.step}>Étape 2 / 3</Text>
-        <Text style={styles.title}>
-            À quelle <Text style={styles.titleAccent}>distance</Text> chercher ?
-        </Text>
-        <Text style={styles.subtitle}>
-          On trouvera les concerts et disquaires dans ce rayon autour de toi.
-        </Text>
-      </View>
-
+    <View
+      style={[
+        s.container,
+        { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 20 },
+      ]}
+    >
       {/* Affichage du rayon */}
-      <View style={styles.middle}>
-        <View style={styles.radiusDisplay}>
-          <Text style={styles.radiusNumber}>
-            {current.value}<Text style={styles.radiusUnit}> km</Text>
+      <View style={s.middle}>
+        <View style={s.radiusDisplay}>
+          <Text style={s.radiusNumber}>
+            {current.value}<Text style={s.radiusUnit}> km</Text>
           </Text>
-          <Text style={styles.radiusDescription}>{current.description}</Text>
+          <Animated.Text key={current.value} entering={FadeIn.duration(200)} style={s.radiusDescription}>
+            {current.description}
+          </Animated.Text>
         </View>
 
         {/* Slider */}
-        <View style={styles.sliderContainer}>
+        <View style={s.sliderContainer}>
           <Slider 
-            style={styles.slider}
+            style={s.slider}
             minimumValue={0}
             maximumValue={3}
             step={1}
             value={index}
-            onValueChange={(v: number) => setIndex(Math.round(v))}
-            minimumTrackTintColor="#a78bfa"
-            maximumTrackTintColor="#1e1e1e"
-            thumbTintColor="#a78bfa"
+            onValueChange={handleSlide}
+            minimumTrackTintColor={colors.accent}
+            maximumTrackTintColor={colors.divider}
+            thumbTintColor={colors.accent}
+            accessibilityLabel={`Rayon de recherche: ${current.label}`}
           />
-          <View style={styles.sliderLabels}>
+          <View style={s.sliderLabels}>
             {RADIUS_OPTIONS.map((opt, i) => (
-              <Text 
+              <Pressable
                 key={opt.value}
-                style={[styles.sliderLabel, i === index && styles.sliderLabelActive]}
+                hitSlop={10}
+                onPress={() => handleSlide(i)}
+                accessibilityRole="button"
               >
-                {opt.label}
-              </Text>
+                <Text style={[s.sliderLabel, i === index && s.sliderLabelActive]}>
+                  {opt.label}
+                </Text>
+              </Pressable>
             ))}
           </View>
         </View>
       </View>
 
       {/* Footer */}
-      <View style={styles.bottom}>
+      <View style={s.bottom}>
+        <PrimaryButton label="Continuer" onPress={handleContinue} loading={loading} />
         <Pressable
-          style={styles.btnPrimary}
-          onPress={handleContinue}
-          disabled={loading}
+          style={s.btnBack}
+          onPress={() => router.back()}
+          hitSlop={10}
         >
-          {loading
-            ? <ActivityIndicator color="#0f0f0f" />
-            : <Text style={styles.btnText}>Continuer</Text>  
-          }
-        </Pressable>
-        <Pressable onPress={() => router.push('/onboarding/genres')} style={styles.btnBack}>
-          <Text style={styles.btnBackText}>← Retour</Text>
+          <Text style={s.btnBack}>← Retour</Text>
         </Pressable>
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0f0f0f',
-    paddingHorizontal: 32,
-    paddingTop: 64,
-    paddingBottom: 48,
-  },
-  progress: {
-    flexDirection: 'row',
-    gap: 6,
-    marginBottom: 48,
-  },
-  bar: {
-    flex: 1,
-    height: 2,
-    borderRadius: 2,
-    backgroundColor: '#1e1e1e',
-  },
-  barActive: {
-    backgroundColor: '#a78bfa',
-  },
-  top: {
-    marginBottom: 48,
-  },
-  step: {
-    fontSize: 11,
-    color: '#3a3a3a',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '300',
-    color: '#e5e5e5',
-    letterSpacing: -0.5,
-    lineHeight: 32
-  },
-  titleAccent: {
-    color: '#a78bfa',
-  },
-  subtitle: {
-    fontSize: 13,
-    color: '#555555',
-    marginTop: 8,
-    lineHeight: 20,
-  },
-  middle: {
-    flex: 1,
-    justifyContent: 'center',
-    gap: 48,
-  },
-  radiusDisplay: {
-    alignItems: 'center',
-    gap: 8,
-  },
+const useStyles = makeStyles((c) => ({
+  container: { flex: 1, backgroundColor: c.bg, paddingHorizontal: 28 },
+  middle: { flex: 1, justifyContent: 'center', gap: 48 },
+  radiusDisplay: { alignItems: 'center', gap: 8 },
   radiusNumber: {
     fontSize: 80,
     fontWeight: '300',
-    color: '#e5e5e5',
+    color: c.text,
     letterSpacing: -3,
     lineHeight: 88,
   },
-  radiusUnit: {
-    fontSize: 32,
-    color: '#555555',
-  },
-  radiusDescription: {
-    fontSize: 13,
-    color: '#555555',
-  },
-  sliderContainer: {
-    gap: 16,
-  },
-  slider: {
-    width: '100%',
-    height: 40,
-  },
-  sliderLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  sliderLabel: {
-    fontSize: 11,
-    color: '#3a3a3a',
-  },
-  sliderLabelActive: {
-    color: '#a78bfa',
-  },
-  bottom: {
-    gap: 12,
-  },
-  btnPrimary: {
-    backgroundColor: '#a78bfa',
-    borderRadius: 12,
-    padding: 15,
-    alignItems: 'center',
-  },
-  btnText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#0f0f0f',
-  },
-  btnBack: {
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  btnBackText: {
-    fontSize: 13,
-    color: '#555555',
-  },
-});
+  radiusUnit: { fontSize: 32, color: c.textMuted },
+  radiusDescription: { fontSize: 13, color: c.textMuted },
+  sliderContainer: { gap: 16 },
+  slider: { width: '100%', height: 40 },
+  sliderLabels: { flexDirection: 'row', justifyContent: 'space-between' },
+  sliderLabel: { fontSize: 11, color: c.textMuted },
+  sliderLabelActive: { color: c.accent, fontWeight: '600' },
+  bottom: { gap: 12 },
+  btnBack: { alignItems: 'center', marginTop: 8, paddingVertical: 4 },
+}));
