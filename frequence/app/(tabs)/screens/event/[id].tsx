@@ -138,8 +138,6 @@ export default function EventDetailScreen() {
   const genreNames = (event.event_genres ?? [])
     .map((eg) => eg.genres?.name)
     .filter((name): name is string => Boolean(name));
-  console.log('Event: ', event);
-  console.log('Genre Names: ', genreNames);
 
   return (
     <View style={styles.container}>

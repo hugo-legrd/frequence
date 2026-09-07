@@ -12,14 +12,6 @@ export default function ConcertsScreen() {
   const [filters, setFilters] = useState<Filters>({ date: 'all', genres: []});
   const { events, loading, loadingMore, error, hasMore, loadMore } = useEvents(filters);
 
-  if (loading) {
-    return(
-      <View style={styles.center}>
-        <ActivityIndicator color={colors.accent} />
-      </View>
-    );
-  }
-
   if (error) {
     return (
       <View style={styles.center}>
@@ -169,7 +161,7 @@ function createStyles(colors: ThemeColors) {
   },
   date: {
     fontSize: 12,
-    color: '#3a3a3a',
+    color: colors.textMuted,
     marginTop: 2,
   },
   separator: {

@@ -44,7 +44,6 @@ export default function VenueMiniMap({ venue }: Readonly<{ venue: EventDetail['v
         zoomEnabled={false}
         pitchEnabled={false}
         rotateEnabled={false}
-        pointerEvents="none"
       >
         <Marker
           coordinate={{ latitude, longitude}}
@@ -66,7 +65,8 @@ function createStyles(colors: ThemeColors){
       height: 140,
     },
     miniMap: {
-      ...StyleSheet.absoluteFillObject,
+      flex: 1,
+      pointerEvents : 'none',
     },
     miniMapOverlay: {
       position: 'absolute',
