@@ -1,8 +1,12 @@
 import { View, Text, FlatList, ActivityIndicator, StyleSheet, Image, Pressable } from 'react-native';
-import { useEvents } from '../../hooks/events/useEvents';
 import { router } from 'expo-router';
 import { useState, useMemo } from 'react';
+
+import { useEvents } from '../../hooks/events/useEvents';
+
 import FilterBar, { Filters } from '../../components/FilterBar';
+import InterestButton from '../../components/InterestButton';
+
 import { useTheme } from '../../../lib/theme/ThemeContext';
 import type { ThemeColors } from '../../../lib/theme/tokens';
 
@@ -51,6 +55,7 @@ export default function ConcertsScreen() {
             ) : (
               <View style={styles.imagePlaceholder} />
             )}
+            <InterestButton eventId={item.id}/>
             <View style={styles.cardContent}>
               <Text style={styles.eventName}>{item.name}</Text>
               {item.artist && (
