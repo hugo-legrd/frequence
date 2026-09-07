@@ -114,6 +114,7 @@ export default function SearchFriendsScreen() {
             <View style={styles.row}>
               <Pressable style={{ flex: 1}} onPress={() => handleUserPress(item)}>
                 <Text style={styles.name}>{item.display_name ?? 'Utilisateur'}</Text>
+                {item.handle && <Text style={styles.handle}>@{item.handle}</Text>}
               </Pressable>
               <Pressable
                 style={[styles.btn, following && styles.btnActive]}
@@ -159,6 +160,7 @@ function createStyles(colors: ThemeColors) {
     paddingVertical: 12,
   },
   name: { color: colors.text, fontSize: 15 },
+  handle: { color: colors.textMuted, fontSize: 13, marginTop: 2},
   btn: {
     borderWidth: 1,
     borderColor: colors.accent,

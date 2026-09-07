@@ -4,6 +4,7 @@ import { supabase } from '../../../lib/services/supabase';
 export type UserSearchResult = {
   id: string;
   display_name: string | null;
+  handle: string | null;
   is_following: boolean;
 };
 
