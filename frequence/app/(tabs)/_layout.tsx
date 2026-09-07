@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { UnreadActivityProvider, useUnreadActivity } from './context/UnreadActivityContext';
+import { UnreadActivityProvider, useUnreadActivity } from '../../lib/context/UnreadActivityContext';
 import { useTheme } from '../../lib/theme/ThemeContext';
 
 function TabsNavigator() {
