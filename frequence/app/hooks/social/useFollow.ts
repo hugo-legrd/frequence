@@ -23,7 +23,7 @@ export function useFollow() {
 
     setLoading(true);
     const { error } = await supabase
-      .from('fellows')
+      .from('follows')
       .delete()
       .eq('follower_id', user.id)
       .eq('following_id', targetUserId);
