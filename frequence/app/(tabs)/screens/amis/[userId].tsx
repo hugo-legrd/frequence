@@ -1,12 +1,18 @@
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
 import { useMemo } from 'react';
+
+import { useLocalSearchParams, router } from 'expo-router';
+import * as Haptics from 'expo-haptics';
+import { Feather } from '@expo/vector-icons';
+
 import { usePublicProfile } from '../../../hooks/profile/usePublicProfile';
 import { useFollow } from '../../../hooks/social/useFollow';
 import { useMutualFriends } from '../../../hooks/social/useMutualFriends';
-import * as Haptics from 'expo-haptics';
+
 import { useTheme } from '../../../../lib/theme/ThemeContext';
 import type { ThemeColors } from '../../../../lib/theme/tokens';
+
+import RemoteImage from '../../../components/RemoteImage';
 
 export default function PublicProfileScreen() {
   const { colors } = useTheme();
@@ -65,12 +71,17 @@ export default function PublicProfileScreen() {
       </Pressable>
 
       <View style={styles.header}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {profile.display_name.charAt(0).toUpperCase()}
-          </Text>
-        </View>
+        {profile.avatar_url ? (
+          <RemoteImage uri={profile.avatar_url} size={80} borderRadius={40} />
+        ) : (
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>
+              {profile.display_name.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        )}
         <Text style={styles.name}>{profile.display_name}</Text>
+        {profile.handle && <Text style={styles.handle}>@{profile.handle}</Text>}
 
         <View style={styles.statsRow}>
           <View style={styles.stat}>
@@ -97,7 +108,21 @@ export default function PublicProfileScreen() {
               Amis en commun: {mutuals.map(m => m.display_name).join(', ')}
               {totalCount > mutuals.length && ` +${totalCount - mutuals.length} autre${totalCount - mutuals.length > 1 ? 's' : ''}`}
             </Text>
-          )}
+        )}
+        
+        {profile.can_view ? (
+          <View style={styles.contentSection}>
+            <Text style={styles.sectionLabel}>{profile.events_count} concerts</Text>
+          </View>
+        ) : (
+          <View style={styles.lockedState}>
+            <Feather name="lock" size={22} color={colors.textMuted} />
+            <Text style={styles.lockedTitle}>Ce compte est privé</Text>
+            <Text style={styles.lockedSub}>
+              Abonne toi à {profile.display_name} pour voir les concerts qui l'intéressent.
+            </Text>
+          </View>
+        )}
       </View>
     </View>
   )
@@ -157,6 +182,22 @@ function createStyles(colors: ThemeColors) {
     marginTop: 16,
     textAlign: 'center',
     paddingHorizontal: 24
-  }
+  },
+  contentSection: {
+    width: "100%",
+    marginTop: 28,
+    paddingHorizontal: 4,
+  },
+  sectionLabel: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    letterSpacing: 1.5,
+    color: colors.textMuted,
+    marginBottom: 12,
+  },
+  handle: { fontSize: 14, color: colors.textMuted, marginTop: 2 },
+  lockedState: { alignItems: 'center', paddingTop: 40, paddingHorizontal: 40, gap: 8 },
+  lockedTitle: { fontSize: 15, fontWeight: '600', color: colors.text },
+  lockedSub: { fontSize: 13, color: colors.textMuted, textAlign: 'center', lineHeight: 19 },
 })
 };

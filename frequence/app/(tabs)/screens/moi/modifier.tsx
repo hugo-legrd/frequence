@@ -1,9 +1,13 @@
 import { useState, useMemo } from "react";
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator, Switch } from 'react-native';
+
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+
 import { useEditableGenres } from "../../../hooks/profile/useEditableGenres";
 import { useEditableName } from "../../../hooks/profile/useEditableName";
+import { useProfileVisibility } from "../../../hooks/social/useProfileVisibility";
+
 import { supabase } from "../../../../lib/services/supabase";
 import { useTheme } from '../../../../lib/theme/ThemeContext';
 import type { ThemeColors } from '../../../../lib/theme/tokens';
@@ -17,6 +21,7 @@ export default function EditProfileScreen() {
     loading: nameLoading, saving: nameSaving, save: saveName
   } = useEditableName();
   const [nameSaved, setNameSaved] = useState(false);
+  const { visibility, update: updateVisibility, error: visibilityError} = useProfileVisibility();
 
   async function handleSaveName() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -106,6 +111,29 @@ export default function EditProfileScreen() {
             thumbColor={isDark ? colors.accent : colors.surface }
           />
         </View>
+
+        <Text style={styles.sectionLabel}>CONFIDENTIALITÉ</Text>
+        <View style={styles.appearanceRow}>
+          <View style={{ flex: 1, paddingRight: 12 }}>
+            <Text style={styles.appearanceLabel}>Compte privé</Text>
+            <Text style={styles.settingHint}>
+              Seuls tes abonnés voient les concerts qui t'intéressent. Ton profil reste
+              visible dans la recherche.
+            </Text>
+          </View>
+          <Switch 
+            value={visibility === 'followers'}
+            disabled={visibility === null}
+            onValueChange={(value) => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              updateVisibility(value ? 'followers' : 'public');
+            }}
+            trackColor={{ false: colors.divider, true: colors.accentSoftBg }}
+            thumbColor={visibility === 'followers' ? colors.accent : colors.surface}
+          />
+        </View>
+        {!!visibilityError && <Text style={styles.settingError}>{visibilityError}</Text>}
+
 
         {/* Déconnexion */}
         <Pressable style={styles.logoutBtn} onPress={handleLogout}>
@@ -201,5 +229,7 @@ function createStyles(colors: ThemeColors) {
     paddingVertical: 12,
   },
   appearanceLabel: { color: colors.text, fontSize: 14, fontWeight: '500' },
+  settingHint: { color: colors.textMuted, fontSize: 12, lineHeight: 17, marginTop: 3},
+  settingError: { color: colors.danger, fontSize: 12, marginTop: 8 },
   })
 };

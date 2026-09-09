@@ -21,7 +21,7 @@ export function usePublicProfile(userId: string) {
 
       if (cancelled) return;
       if (error) console.error(error);
-      else setProfile(data?.[0] ?? null);
+      else setProfile(data?.[0] ? (data[0] as PublicProfile) : null);
       setLoading(false);
     }
 

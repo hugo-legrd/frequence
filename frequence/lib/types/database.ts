@@ -445,11 +445,16 @@ export type Database = {
       get_public_profile: {
         Args: { current_user_id: string; target_user_id: string }
         Returns: {
+          avatar_url: string
+          can_view: boolean
           display_name: string
+          events_count: number
           followers_count: number
           following_count: number
+          handle: string
           id: string
           is_following: boolean
+          profile_visibility: string
         }[]
       }
       get_random_upcoming_event: {
@@ -464,6 +469,21 @@ export type Database = {
           venue_name: string
         }[]
       }
+      get_user_events: {
+        Args: { current_user_id: string; target_user_id: string }
+        Returns: {
+          artist_name: string
+          event_id: string
+          event_name: string
+          image_url: string
+          is_past: boolean
+          starts_at: string
+          status: string
+          style: string[]
+          venue_name: string
+        }[]
+      }
+      is_handle_available: { Args: { candidate: string }; Returns: boolean }
       search_all: { Args: { query: string }; Returns: Json }
       search_users: {
         Args: { current_user_id: string; search_term: string }
@@ -474,6 +494,8 @@ export type Database = {
           is_following: boolean
         }[]
       }
+      set_my_handle: { Args: { new_handle: string }; Returns: string }
+      set_my_visibility: { Args: { visibility: string }; Returns: string }
       sync_event_genres: { Args: { p_event_id: string }; Returns: undefined }
     }
     Enums: {
