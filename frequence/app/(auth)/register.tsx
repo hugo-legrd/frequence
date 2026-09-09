@@ -5,15 +5,18 @@ import {
   TextInput,
   Pressable,
 } from 'react-native';
-import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+
+import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
+
 import { supabase } from '../../lib/services/supabase';
 import { makeStyles } from '../../lib/theme/makeStyles';
 import { authErrorMessage } from '../../lib/auth/authErrors';
 import { isValidEmail, normalizeEmail } from '../../lib/auth/validators';
 import { useGoogleAuth } from '../../lib/auth/useGoogleAuth';
 import { routeAfterAuth } from '../../lib/auth/routeAfterAuth';
+
 import { AuthScreen } from '../components/auth/AuthScreen';
 import { AuthHeader } from '../components/auth/AuthHeader';
 import { Field } from '../components/auth/Field';
@@ -23,16 +26,20 @@ import { Divider } from '../components/auth/Divider';
 import { Banner } from '../components/auth/Banner';
 import { PasswordRules } from '../components/auth/PasswordRules';
 
-type Errors = { firstName?: string; email?: string; password?: string; form?: string };
+import { useHandleAvailability } from '../hooks/social/useHandleAvailability';
+
+type Errors = { firstName?: string; handle?: string; email?: string; password?: string; form?: string };
 
 export default function RegisterScreen() {
   const s = useStyles();
   const lastNameRef = useRef<TextInput>(null);
+  const handleRef = useRef<TextInput>(null);
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
   
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [handle, setHandle] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<Errors>({});
@@ -40,6 +47,7 @@ export default function RegisterScreen() {
   const [passwordFocused, setPasswordFocused] = useState(false);
 
   const signInWithGoogle = useGoogleAuth();
+  const handleState = useHandleAvailability(handle);
 
   function fail(next: Errors) {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -48,6 +56,15 @@ export default function RegisterScreen() {
 
   async function signUp() {
     if (!firstName.trim()) return fail({ firstName: 'Ton prénom est requis.'});
+    if (handleState === 'invalid') {
+      handleRef.current?.focus();
+      return fail({ handle: '3 à 20 caractères: lettres, chiffres, underscore. '});
+    }
+    if (handleState === 'taken') {
+      handleRef.current?.focus();
+      return fail({ handle: 'Ce pseudo est déjà pris. '});
+    }
+    if (handleState === 'checking') return;
     if (!isValidEmail(email)) {
       emailRef.current?.focus();
       return fail({ email: 'Adresse email invalide.'})
@@ -63,7 +80,11 @@ export default function RegisterScreen() {
       email: normalizeEmail(email),
       password,
       options: {
-        data: { first_name: firstName.trim(), last_name: lastName.trim() },
+        data: { 
+          first_name: firstName.trim(), 
+          last_name: lastName.trim(),
+          handle: handle.trim().toLowerCase() || null,
+        },
       },
     });
     setLoading(null);
@@ -119,6 +140,26 @@ export default function RegisterScreen() {
             submitBehavior='submit'
           />
         </View>
+
+        <Field 
+          ref={handleRef}
+          label="Pseudo"
+          value={handle}
+          onChangeText={(v) => { setHandle(v.toLowerCase()); setErrors({}); }}
+          error={errors.handle}
+          hint={
+            handleState === 'available' ? '✓ Disponible'
+            : handleState === 'taken' ? 'Déjà Pris'
+            : handleState === 'checking' ? 'Vérification...'
+            : undefined
+          }
+          autoCapitalize="none"
+          autoComplete="username"
+          textContentType="username"
+          returnKeyType="next"
+          onSubmitEditing={() => emailRef.current?.focus()}
+          submitBehavior="submit"
+        />
 
         <Field
           ref={emailRef}

@@ -8,6 +8,16 @@ export async function routeAfterAuth() {
   const userId = data.session?.user.id
   if (!userId) return;
 
+  const { data: profile } = await supabase
+    .from('users')
+    .select('handle')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (!profile?.handle) {
+    return router.replace('/(auth)/choose-handle');
+  }
+
   const done = await AsyncStorage.getItem(`onboarding_done_${userId}`);
   router.replace(done ? '/(tabs)/screens/home' : '/onboarding/genres');
 }
