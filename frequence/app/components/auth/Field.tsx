@@ -12,13 +12,14 @@ const AnimatedText = Animated.createAnimatedComponent(Text);
 type Props = Omit<TextInputProps, 'placeholder'> & {
   label: string;
   error?: string | null;
+  hint?: string | null;
   secure?: boolean;
   half?: boolean;
   onFocusChange?: (focused: boolean) => void;
 };
 
 export const Field = forwardRef<TextInput, Props>(function Field(
-  { label, error, secure, half, value, onFocus, onBlur, onFocusChange, style, ...rest },
+  { label, error, hint, secure, half, value, onFocus, onBlur, onFocusChange, style, ...rest },
   ref
 ) {
   const s = useStyles();
@@ -98,7 +99,11 @@ export const Field = forwardRef<TextInput, Props>(function Field(
         )}
       </View>
 
-      {!!error && <Text style={s.error}>{error}</Text>}
+      {error ? (
+        <Text style={s.error}>{error}</Text>
+      ) : hint ? (
+        <Text style={s.hint}>{hint}</Text>
+      ) : null}
     </Animated.View>
   );
 });
@@ -122,4 +127,5 @@ const useStyles = makeStyles((c) => ({
   inputWithAdornment: { paddingRight: 34 },
   adornment: { position: 'absolute', right: 14, top: 20 },
   error: { fontSize: 11.5, color: c.danger, marginTop: 6, paddingLeft: 4 },
+  hint: { fontSize: 11.5, color: c.textMuted, marginTop: 6, paddingLeft: 4 },
 }));
