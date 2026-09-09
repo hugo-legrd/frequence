@@ -1,10 +1,14 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
-import { router } from 'expo-router';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, TextInput, FlatList, Pressable, StyleSheet, ActivityIndicator, Animated } from 'react-native';
+
+
+import { router, useFocusEffect } from 'expo-router';
+import * as Haptics from 'expo-haptics';
+
 import { useUserSearch, UserSearchResult } from '../../../hooks/social/useUserSearch';
 import { useFollow } from '../../../hooks/social/useFollow';
 import { useSearchHistory } from '../../../hooks/social/useSearchHistory';
-import * as Haptics from 'expo-haptics';
+
 import { useTheme } from '../../../../lib/theme/ThemeContext';
 import { ThemeColors } from '../../../../lib/theme/tokens';
 
@@ -13,13 +17,20 @@ export default function SearchFriendsScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [query, setQuery] = useState('');
-  const { results, loading } = useUserSearch(query);
+  const { results, loading, refetch } = useUserSearch(query);
   const { follow, unfollow } = useFollow();
   const { history, addToHistory, clearHistory } = useSearchHistory();
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
 
   // État local optimiste — évite d'attendre le round-trip Supabase pour mettre à jour le bouton
   const [localFollowState, setLocalFollowState] = useState<Record<string, boolean>>({});
+
+  useFocusEffect(
+    useCallback(() => {
+      setLocalFollowState({});
+      refetch();
+    }, [])
+  );
 
   function isFollowing(user: UserSearchResult) {
     return localFollowState[user.id] ?? user.is_following;

@@ -14,6 +14,8 @@ const DEBOUNCE_MS = 300;
 export function useUserSearch(query: string) {
   const [results, setResults] = useState<UserSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null >(null);
 
   useEffect(() => {
@@ -39,7 +41,7 @@ export function useUserSearch(query: string) {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [query]);
+  }, [query, reloadKey]);
 
-  return { results, loading };
+  return { results, loading, refetch: () => setReloadKey(k => k + 1) };
 }
