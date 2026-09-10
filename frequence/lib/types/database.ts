@@ -357,6 +357,16 @@ export type Database = {
           selected: boolean
         }[]
       }
+      get_follow_list: {
+        Args: { current_user_id: string; kind: string; target_user_id: string }
+        Returns: {
+          avatar_url: string
+          display_name: string
+          handle: string
+          id: string
+          is_following: boolean
+        }[]
+      }
       get_friends_activity: {
         Args: { current_user_id: string; limit_count?: number }
         Returns: {
