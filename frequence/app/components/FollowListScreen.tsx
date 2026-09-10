@@ -13,9 +13,10 @@ type Props = {
   kind: 'followers' | 'following';
   userId?: string;
   emptyText: string;
+  backHref?: string;
 };
 
-export default function FollowListScreen({ title, kind, userId, emptyText }: Readonly<Props>) {
+export default function FollowListScreen({ title, kind, userId, emptyText, backHref }: Readonly<Props>) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { users, loading } = useFollowList(userId, kind);
@@ -33,7 +34,10 @@ export default function FollowListScreen({ title, kind, userId, emptyText }: Rea
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
+        <Pressable onPress={() => (backHref ? router.dismissTo(backHref as any) : router.back())} 
+          style={styles.backBtn} 
+          hitSlop={8}
+        >
           <Text style={styles.backArrow}>←</Text>
         </Pressable>
         <Text style={styles.title}>{title}</Text>
@@ -52,7 +56,10 @@ export default function FollowListScreen({ title, kind, userId, emptyText }: Rea
               <View style={styles.row}>
                 <Pressable
                   style={styles.rowMain}
-                  onPress={() => router.push(`/(tabs)/screens/amis/${item.id}`)}
+                  onPress={() => router.push({
+                    pathname: '/(tabs)/screens/amis/[userId]',
+                    params: { userId: item.id, from: backHref ?? '' },
+                  })}
                 > 
                   {item.avatar_url ? (
                     <RemoteImage uri={item.avatar_url} size={42} borderRadius={21} />

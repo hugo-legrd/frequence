@@ -6,6 +6,7 @@ export default function MyFollowing() {
       title="Abonnements"
       kind="following"
       emptyText="Tu ne suis personne pour l'instant."
+      backHref="/(tabs)/screens/moi/moi"
     />
   )
 }

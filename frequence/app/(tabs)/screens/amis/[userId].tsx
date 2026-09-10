@@ -8,20 +8,26 @@ import { Feather } from '@expo/vector-icons';
 import { usePublicProfile } from '../../../hooks/profile/usePublicProfile';
 import { useFollow } from '../../../hooks/social/useFollow';
 import { useMutualFriends } from '../../../hooks/social/useMutualFriends';
+import { useUserEvents } from '../../../hooks/events/useUserEvents';
 
 import { useTheme } from '../../../../lib/theme/ThemeContext';
 import type { ThemeColors } from '../../../../lib/theme/tokens';
 
 import RemoteImage from '../../../components/RemoteImage';
+import { ScrollView } from 'react-native-gesture-handler';
 
 export default function PublicProfileScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const { userId } = useLocalSearchParams<{ userId: string }>();
+  const { userId, from } = useLocalSearchParams<{ userId: string, from?: string }>();
   const { profile, loading, setProfile } = usePublicProfile(userId);
   const { follow, unfollow, loading: followLoading } = useFollow();
   const { mutuals, totalCount } = useMutualFriends(userId);
+  const { events, loading: eventsLoading } = useUserEvents(userId, !!profile?.can_view);
+
+  const goingEvents = useMemo(() => events.filter(e => !e.is_past), [events]);
+  const pastEvents = useMemo(() => events.filter(e => e.is_past), [events]);
 
   async function toggleFollow() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -66,11 +72,11 @@ export default function PublicProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <Pressable style={styles.backBtn} onPress={() => router.back()}>
+      <Pressable style={styles.backBtn} onPress={() => (from ? router.navigate(from as any) : router.back())}>
         <Text style={styles.backArrow}>←</Text>
       </Pressable>
 
-      <View style={styles.header}>
+      <ScrollView contentContainerStyle={styles.header} showsVerticalScrollIndicator={false}>
         {profile.avatar_url ? (
           <RemoteImage uri={profile.avatar_url} size={80} borderRadius={40} />
         ) : (
@@ -112,7 +118,61 @@ export default function PublicProfileScreen() {
         
         {profile.can_view ? (
           <View style={styles.contentSection}>
-            <Text style={styles.sectionLabel}>{profile.events_count} concerts</Text>
+            {eventsLoading ? (
+              <ActivityIndicator color={colors.accent} style={{ marginTop: 20 }} />
+            ) : events.length === 0 ? (
+              <Text style={styles.sectionEmpty}>Aucun concert pour l'instant.</Text>
+            ) : (
+              <>
+                {goingEvents.length > 0 && (
+                  <>
+                    <Text style={styles.sectionLabel}>À VENIR · {goingEvents.length}</Text>
+                    {goingEvents.map(item => (
+                      <Pressable
+                        key={item.event_id}
+                        style={styles.eventRow}
+                        onPress={() => router.push(`/(tabs)/screens/event/${item.event_id}`)}
+                      >
+                        <RemoteImage uri={item.image_url} size={44} borderRadius={8} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.eventName} numberOfLines={1}>
+                            {item.artist_name ?? item.event_name}
+                          </Text>
+                          <Text style={styles.eventMeta} numberOfLines={1}>{item.venue_name}</Text>
+                        </View>
+                        {item.status === 'going' && (
+                          <View style={styles.badge}><Text style={styles.badgeText}>J'y vais</Text></View>
+                        )}
+                      </Pressable>
+                    ))}
+                  </>
+                )}
+                  {pastEvents.length > 0 && (
+                    <>
+                      <Text style={[styles.sectionLabel, { marginTop: 24 }]}>
+                          CONCERTS PASSÉS · {pastEvents.length}
+                      </Text>
+                      {pastEvents.map(item => (
+                        <Pressable
+                          key={item.event_id}
+                          style={styles.eventRow}
+                          onPress={() => router.push(`(tabs)/screens/event/${item.event_id}`)}
+                        >
+                          <RemoteImage uri={item.image_url} size={44} borderRadius={8 }/>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.eventName} numberOfLines={1}>
+                              {item.artist_name ?? item.event_name}
+                            </Text>
+                            <Text style={styles.eventMeta} numberOfLines={1}>
+                              {item.venue_name}
+                            </Text>
+                          </View>
+                        </Pressable>
+                      ))}
+                    </>
+                  )}
+              </>
+            )}
           </View>
         ) : (
           <View style={styles.lockedState}>
@@ -123,7 +183,7 @@ export default function PublicProfileScreen() {
             </Text>
           </View>
         )}
-      </View>
+      </ScrollView>
     </View>
   )
 }
@@ -199,5 +259,11 @@ function createStyles(colors: ThemeColors) {
   lockedState: { alignItems: 'center', paddingTop: 40, paddingHorizontal: 40, gap: 8 },
   lockedTitle: { fontSize: 15, fontWeight: '600', color: colors.text },
   lockedSub: { fontSize: 13, color: colors.textMuted, textAlign: 'center', lineHeight: 19 },
+  sectionEmpty: { fontSize: 13, color: colors.textMuted, textAlign: 'center', marginTop: 20 },
+  eventRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
+  eventName: { fontSize: 14.5, fontWeight: '600', color: colors.text },
+  eventMeta: { fontSize: 12.5, color: colors.textMuted, marginTop: 2 },
+  badge: { borderWidth: 1, borderColor: colors.divider, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
+  badgeText: { color: colors.accent, fontSize: 11.5, fontWeight: '500' },
 })
 };

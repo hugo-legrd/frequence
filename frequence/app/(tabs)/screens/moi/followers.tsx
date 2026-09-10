@@ -6,6 +6,7 @@ export default function MyFollowers() {
       title="Abonnés"
       kind="followers"
       emptyText="Personnes ne te suit pour l'instant."
+      backHref="/(tabs)/screens/moi/moi"
     />
   );
 }
