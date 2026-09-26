@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useState, useMemo } from 'react';
 
 import { useEvents } from '../../hooks/events/useEvents';
+import { useEventCounts } from '../../hooks/events/useEventCounts';
 
 import FilterBar, { Filters } from '../../components/FilterBar';
 import InterestButton from '../../components/InterestButton';
@@ -13,8 +14,10 @@ import type { ThemeColors } from '../../../lib/theme/tokens';
 export default function ConcertsScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+
   const [filters, setFilters] = useState<Filters>({ date: 'all', genres: []});
   const { events, loading, loadingMore, error, hasMore, loadMore } = useEvents(filters);
+  const counts = useEventCounts(useMemo(() => events.map(e => e.id), [events]));
 
   if (error) {
     return (
@@ -42,20 +45,20 @@ export default function ConcertsScreen() {
         }
         stickyHeaderIndices={[0]}
         renderItem={({ item }) => (
-          <Pressable
-            style={styles.card}
-            onPress={() => router.push(`/(tabs)/screens/event/${item.id}`)}
-          >
-            {item.image_url ? (
-              <Image
-                source={{ uri: item.image_url}}
-                style={styles.image}
-                resizeMode="cover"
-              />
-            ) : (
+          <View style={styles.card}>
+            <Pressable
+              style={styles.card}
+              onPress={() => router.push(`/(tabs)/screens/event/${item.id}`)}
+            >
+              {item.image_url ? (
+                <Image
+                  source={{ uri: item.image_url}}
+                  style={styles.image}
+                  resizeMode="cover"
+                />
+              ) : (
               <View style={styles.imagePlaceholder} />
             )}
-            <InterestButton eventId={item.id}/>
             <View style={styles.cardContent}>
               <Text style={styles.eventName}>{item.name}</Text>
               {item.artist && (
@@ -81,8 +84,27 @@ export default function ConcertsScreen() {
                   })}
                 </Text>
               )}
+              {(() => {
+                const c = counts[item.id];
+                if (!c) return null;
+                if (c.friends_going > 0) {
+                  return <Text style={styles.attendance}>
+                    {c.friends_going} ami{c.friends_going > 1 ? 's y vont' : ' y va'}
+                  </Text>
+                }
+                if (c.friends_interested > 0) {
+                  return <Text style={styles.attendance}>
+                    {c.friends_interested} ami{c.friends_interested > 1 ? 's intéressés' : ' intéressé'}
+                  </Text>
+                }
+                const total = c.going_count + c.interested_count;                return total > 0
+                  ? <Text style={styles.attendance}>{total} intéressés</Text>
+                  : null;
+              })()}
             </View>
           </Pressable>
+          <InterestButton eventId={item.id} />
+        </View>
         )}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListEmptyComponent={
@@ -199,6 +221,12 @@ function createStyles(colors: ThemeColors) {
   screenLocation: {
     fontSize: 14,
     color: colors.text,
-  }
+  },
+  attendance: {
+    fontSize: 12,
+    color: colors.accent, 
+    fontWeight: '500',
+    marginTop: 3
+  },
 })
 };
