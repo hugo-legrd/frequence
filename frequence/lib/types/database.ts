@@ -345,7 +345,23 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      event_interest_counts: {
+        Row: {
+          event_id: string | null
+          going_count: number | null
+          interested_count: number | null
+          total_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       can_view_user: { Args: { target: string }; Returns: boolean }
@@ -355,6 +371,16 @@ export type Database = {
           id: string
           name: string
           selected: boolean
+        }[]
+      }
+      get_event_counts: {
+        Args: { current_user_id: string; event_ids: string[] }
+        Returns: {
+          event_id: string
+          friends_going: number
+          friends_interested: number
+          going_count: number
+          interested_count: number
         }[]
       }
       get_follow_list: {
@@ -384,7 +410,10 @@ export type Database = {
       get_friends_going: {
         Args: { current_user_id: string; target_event_id: string }
         Returns: {
+          avatar_url: string
           display_name: string
+          handle: string
+          status: string
           user_id: string
         }[]
       }
