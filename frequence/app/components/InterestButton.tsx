@@ -14,7 +14,9 @@ export default function InterestButton({ eventId }: Readonly<{ eventId: string }
     <Pressable
       style={[styles.btn, status && styles.btnActive]}
       hitSlop={8}
+      
       onPress={(e) => {
+        console.log('tap eventId:', eventId, '→ status:', status);
         e.stopPropagation();
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         setInterest('interested');
