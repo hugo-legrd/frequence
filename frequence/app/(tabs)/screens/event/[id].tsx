@@ -43,7 +43,8 @@ export default function EventDetailScreen() {
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const { status: interest, loading: interestLoading, setInterest } = useEventInterest(id);
-  
+  console.log('detail id:', id?.slice(0, 8), 'interest:', interest);
+
   useEffect(() => {
     let cancelled = false;
 
