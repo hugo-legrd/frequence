@@ -1,8 +1,12 @@
 import { useState, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet, Modal, FlatList } from 'react-native';
+
 import { useFriendsGoing } from '../hooks/social/useFriendsGoing'; 
+
 import { useTheme } from '../../lib/theme/ThemeContext';
 import { ThemeColors } from '../../lib/theme/tokens';
+
+import RemoteImage from './RemoteImage';
 
 const MAX_ROWS_SHOWN = 4;
 
@@ -11,6 +15,8 @@ type FriendStatus = 'going' | 'interested';
 type Friend = {
   user_id: string;
   display_name: string;
+  handle?: string | null;
+  avatar_url?: string | null;
   status?: FriendStatus;
 };
 
@@ -62,7 +68,7 @@ export default function FriendsGoingRow({ eventId }: { eventId: string }) {
           <Pressable style={styles.modalCard} onPress={() => {}}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>
-              {friends.length} ami{friends.length > 1 ? 's' : ''} y {friends.length > 1 ? 'vont' : 'va'}
+              {friends.length} ami{friends.length > 1 ? 's' : ''} sur ce concert
             </Text>
 
             <FlatList 
@@ -98,11 +104,18 @@ function FriendRow({
 
   return (
     <View style={styles.friendRow}>
-      <View style={[styles.friendAvatar, { backgroundColor: avatarStyleFor(colors, friend.user_id) }]}>
-        <Text style={styles.friendAvatarText}>{friend.display_name.charAt(0).toUpperCase()}</Text>
-      </View>
+      {friend.avatar_url ? (
+        <RemoteImage uri={friend.avatar_url} size={36} borderRadius={18} />
+      ) : (
+        <View style={[styles.friendAvatar, { backgroundColor: avatarStyleFor(colors,friend.user_id) }]}>
+          <Text style={styles.friendAvatarText}>{friend.display_name.charAt(0).toUpperCase()}</Text>
+        </View>
+      )}
 
-      <Text style={styles.friendName}>{friend.display_name}</Text>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.friendName}>{friend.display_name}</Text>
+        {friend.handle && <Text style={styles.friendHandle}>@{friend.handle}</Text>}
+      </View>
 
       <View style={[styles.statusPill, going ? styles.statusPillGoing: styles.statusPillInterested]}>
         <Text style={[styles.statusPillText, going ? styles.statusPillTextGoing: styles.statusPillTextInterested]}>
@@ -173,9 +186,13 @@ function createStyles(colors: ThemeColors) {
     color: colors.bg,
   },
   friendName: {
-    flex: 1,
     fontSize: 14,
     color: colors.text,
+  },
+  friendHandle: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 1,
   },
   statusPill: {
     paddingVertical: 5,
