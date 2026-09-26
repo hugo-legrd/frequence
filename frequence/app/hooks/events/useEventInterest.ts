@@ -41,6 +41,7 @@ export function useEventInterest(eventId: string | undefined) {
   
   useEffect(() => {
     if (!eventId) return;
+    setStatus(cache.get(eventId) ?? null);
     return subscribe(eventId, setStatus);
   }, [eventId]);
 
@@ -50,6 +51,7 @@ export function useEventInterest(eventId: string | undefined) {
       return;
   }
   let cancelled = false;
+  setLoading(true);
   
   (async () => {
     const { data: auth } = await supabase.auth.getUser();
