@@ -254,7 +254,15 @@ function isPartyEvent(event: DiceEvent): boolean {
   return (event.genre_tags ?? []).some(tag => tag.startsWith('party:'));
 }
 
-Deno.serve(async () => {
+// Cette fonction n'est pas appelée par les utilisateurs (verify_jwt = false) :
+// on exige un secret partagé, à envoyer dans l'en-tête `x-cron-secret`.
+const CRON_SECRET = Deno.env.get('CRON_SECRET');
+
+Deno.serve(async (req) => {
+  if (!CRON_SECRET || req.headers.get('x-cron-secret') !== CRON_SECRET) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
   const startTime = Date.now();
   const stats = { total: 0, success: 0, failed: 0, skippedNoArtist: 0, skippedParty: 0};
 

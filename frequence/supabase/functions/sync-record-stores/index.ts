@@ -21,7 +21,15 @@ async function fetchZone(lat: number, lon: number): Promise<any[]> {
   return data.results ?? [];
 }
 
-Deno.serve(async () => {
+// La clé anon suffit à passer verify_jwt : on exige en plus un secret partagé,
+// à envoyer dans l'en-tête `x-cron-secret`.
+const CRON_SECRET = Deno.env.get('CRON_SECRET');
+
+Deno.serve(async (req) => {
+  if (!CRON_SECRET || req.headers.get('x-cron-secret') !== CRON_SECRET) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
   try {
 
     // Récupérer toutes les zones et dédupliquer par place_id
