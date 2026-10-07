@@ -38,7 +38,7 @@ export default function ConcertsScreen() {
           <View>
             <View style={styles.screenHeader}>
               <Text style={styles.screenTitle}>Concerts</Text>
-              <Text style={styles.screenLocation}>Paris · ce mois-ci</Text>
+              <Text style={styles.screenLocation}>Paris</Text>
             </View>
             <FilterBar filters={filters} onChange={setFilters} />
           </View>
