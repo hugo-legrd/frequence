@@ -365,6 +365,13 @@ export type Database = {
     }
     Functions: {
       can_view_user: { Args: { target: string }; Returns: boolean }
+      get_active_genres: {
+        Args: never
+        Returns: {
+          event_count: number
+          name: string
+        }[]
+      }
       get_all_genres_with_selection: {
         Args: { current_user_id: string }
         Returns: {
