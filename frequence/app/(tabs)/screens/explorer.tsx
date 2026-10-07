@@ -54,6 +54,11 @@ export default function ExplorerScreen() {
   const [selectedStore, setSelectedStore] = useState<Store | null>(null);
   const [sheetIndex, setSheetIndex] = useState(0);
 
+  const [activeVenueIds, setActiveVenueIds] = useState<Set<string>>(new Set());
+
+  const [showStores, setShowStores] = useState(true);
+  const [showVenues, setShowVenues] = useState(true);
+
   const { recommendations, loading: recLoading } = useRecommendations();
 
   const animatedIndex = useSharedValue(0);
@@ -63,10 +68,12 @@ export default function ExplorerScreen() {
   
   useEffect(() => {
     requestLocation();
-    if(location) {
-      fetchVenues();
-      loadStores()
-    }
+  }, [location]);
+
+  useEffect(() => {
+    if (!location) return;
+    fetchVenues();
+    loadStores();
   }, [location]);
 
   // Demande la permission GPS et récupère la position actuelle
@@ -108,6 +115,14 @@ export default function ExplorerScreen() {
 
     if (error) console.error(error);
     else setVenues(data ?? []);
+
+    const { data: upcoming } = await supabase
+      .from('events')
+      .select('venue_id')
+      .gte('starts_at', new Date().toISOString())
+      .not('venue_id', 'is', null);
+
+    setActiveVenueIds(new Set((upcoming ?? []).map(e => e.venue_id as string)));
   }
 
   async function loadStores() {
@@ -163,7 +178,7 @@ export default function ExplorerScreen() {
         }}
       >
         {/* Pins oranges pour chaque venue de concert */}
-        {venues.map(venue =>(
+        {showVenues && venues.map(venue =>(
           <Marker
             key={venue.id}
             coordinate={{
@@ -178,9 +193,14 @@ export default function ExplorerScreen() {
               setSelectedVenue(venue)}
             }
             anchor={{ x: 0.5, y: 0.5 }}
-            tracksViewChanges={false}
+            tracksViewChanges={selectedVenue?.id === venue.id}
           >
-            <View style={styles.pinOrange} />
+            <View style={selectedVenue?.id === venue.id ? styles.pinHalo : undefined}>
+              <View style={[
+                styles.pinOrange,
+                !activeVenueIds.has(venue.id) && styles.pinHollow,
+              ]} />
+            </View>
 
             <Callout tooltip>
               <View style={styles.callout}>
@@ -192,8 +212,8 @@ export default function ExplorerScreen() {
             </Callout>
           </Marker>
         ))}
-        {/* Pins violets pour les disquares */}
-        {stores.map(store => (
+        {/* Pins violets pour les disquaires */}
+        {showStores && stores.map(store => (
           <Marker
             key={`store-${store.id}`}
             coordinate={{
@@ -208,23 +228,33 @@ export default function ExplorerScreen() {
               setSelectedStore(store)
             }}
             anchor={{ x: 0.5, y: 0.5 }}
-            tracksViewChanges={false}
+            tracksViewChanges={selectedStore?.id === store.id}
           >
-            <View style={styles.pinViolet} />
+            <View style={selectedStore?.id === store.id ? styles.pinHalo : undefined}>
+              <View style={styles.pinViolet} />
+            </View>
           </Marker>
         ))}
       </MapView>
 
       {/* Légende des couleurs de pins — positionnée en absolu sur la carte */}
       <View style={styles.legend}>
-        <View style={styles.legendItem}>
+        <Pressable
+          style={[styles.legendItem, !showStores && styles.legendItemOff]}
+          onPress={() => setShowStores(v => !v)}
+          hitSlop={6}
+        >
           <View style={[styles.legendDot, { backgroundColor: colors.accent }]} />
           <Text style={styles.legendText}>Disquaires</Text>
-        </View>
-        <View style={styles.legendItem}>
+        </Pressable>
+        <Pressable
+          style={[styles.legendItem, !showVenues && styles.legendItemOff]}
+          onPress={() => setShowVenues(v => !v)}
+          hitSlop={6}
+        >
           <View style={[styles.legendDot, { backgroundColor: colors.genre.festival.base }]} />
           <Text style={styles.legendText}>Concerts</Text>
-        </View>
+        </Pressable>
       </View>
 
       {/* Bouton pour recentrer la carte sur la position GPS actuelle */}
@@ -312,20 +342,47 @@ function createStyles(colors: ThemeColors) {
   },
   recenterIcon: { fontSize: 18, color: colors.text },
   pinOrange: {
-    width: 20,
-    height: 20,
-    borderRadius: 20,
+    width: 13,
+    height: 13,
+    borderRadius: 7,
     backgroundColor: colors.genre.festival.base,
-    borderWidth: 3,
+    borderWidth: 2,
     borderColor: colors.bg,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
   },
   pinViolet: {
-    width: 20,
-    height: 20,
-    borderRadius: 20,
+    width: 13,
+    height: 13,
+    borderRadius: 7,
     backgroundColor: colors.accent,
-    borderWidth: 3,
+    borderWidth: 2,
     borderColor: colors.bg,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 }, 
+  },
+  pinSelected: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 3,
+    borderColor: colors.text,
+  },
+  pinHalo: {
+    padding: 6,
+    borderRadius: 999,
+    backgroundColor: colors.accentSoftBg,
+    borderWidth: 2,
+    borderColor: colors.text,
+  },
+  pinHollow: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: colors.genre.festival.base,
   },
   callout: {
     backgroundColor: colors.surface,
@@ -345,6 +402,7 @@ function createStyles(colors: ThemeColors) {
   calloutAddress: {
     fontSize: 11,
     color: colors.textMuted,
-  }
+  },
+  legendItemOff: { opacity: 0.35 },
 })
 };
