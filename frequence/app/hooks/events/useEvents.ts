@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/services/supabase';
 import { Filters } from '../../components/FilterBar';
-import { fetchEvents } from '../../../lib/services/ticketmaster';
 
 export type Event = {
   id: string;
