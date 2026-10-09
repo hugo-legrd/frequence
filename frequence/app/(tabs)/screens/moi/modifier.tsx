@@ -22,6 +22,15 @@ export default function EditProfileScreen() {
   } = useEditableName();
   const [nameSaved, setNameSaved] = useState(false);
   const { visibility, update: updateVisibility, error: visibilityError} = useProfileVisibility();
+  const [genresExpanded, setGenresExpanded] = useState(false);
+  const [genreQuery, setGenreQuery] = useState('');
+
+  const selectedGenres = useMemo(() => genres.filter(g => g.selected), [genres]);
+  const visibleGenres = useMemo(() => {
+    if (!genresExpanded) return selectedGenres;
+    const q = genreQuery.trim().toLowerCase();
+    return q ? genres.filter(g => g.name.toLowerCase().includes(q)) : genres;
+  }, [genres, selectedGenres, genresExpanded, genreQuery])
 
   async function handleSaveName() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -83,22 +92,56 @@ export default function EditProfileScreen() {
         {genresLoading ? (
           <ActivityIndicator color={colors.accent} style={{ marginVertical: 20 }}/>
         ) : (
-          <View style={styles.genresGrid}>
-            {genres.map(genre => (
-              <Pressable 
-                key={genre.id}
-                style={[styles.genrePill, genre.selected && styles.genrePillActive]}
+          <>
+              {genresExpanded && (
+                <TextInput
+                  style={[styles.input, { marginBottom: 12 }]}
+                  placeholder="Rechercher un genre..."
+                  placeholderTextColor={colors.textMuted}
+                  value={genreQuery}
+                  onChangeText={setGenreQuery}
+                  autoCapitalize="none"
+                />
+              )}
+
+              <View style={styles.genresGrid}>
+                {visibleGenres.map(genre => (
+                  <Pressable
+                    key={genre.id}
+                    style={[styles.genrePill, genre.selected && styles.genrePillActive]}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+                      toggleGenre(genre.id);
+                    }}
+                  >
+                    <Text style={[styles.genrePillText, genre.selected && styles.genrePillTextActive]}>
+                      {genre.name}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              {!genresExpanded && selectedGenres.length === 0 && (
+                <Text style={styles.settingHint}>Aucun genre sélectionné pour l'instant.</Text>
+              )}
+
+              {genresExpanded && visibleGenres.length === 0 && (
+                <Text style={styles.settingHint}>Aucun genre ne correspond à « {genreQuery} ».</Text>
+              )}
+
+              <Pressable
+                style={styles.genresToggle}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  toggleGenre(genre.id);
+                  setGenresExpanded(v => !v);
+                  setGenreQuery('');
                 }}
               >
-                <Text style={[styles.genrePillText, genre.selected && styles.genrePillTextActive]}>
-                  {genre.name}
+                <Text style={styles.genresToggleText}>
+                  {genresExpanded ? 'Voir moins' : `Choisir parmi ${genres.length} genres` }
                 </Text>
               </Pressable>
-            ))}
-          </View>
+          </>
         )}
 
         <Text style={styles.sectionLabel}>APPARENCE</Text>
@@ -231,5 +274,11 @@ function createStyles(colors: ThemeColors) {
   appearanceLabel: { color: colors.text, fontSize: 14, fontWeight: '500' },
   settingHint: { color: colors.textMuted, fontSize: 12, lineHeight: 17, marginTop: 3},
   settingError: { color: colors.danger, fontSize: 12, marginTop: 8 },
+  genresToggle: {
+    marginTop: 12, alignSelf: 'flex-start',
+    borderWidth: 1, borderColor: colors.divider, borderRadius: 10,
+    paddingHorizontal: 16, paddingVertical: 9,
+  },
+  genresToggleText: { fontSize: 12.5, fontWeight: '600', color: colors.accent },
   })
 };
