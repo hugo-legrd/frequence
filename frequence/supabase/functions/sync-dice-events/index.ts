@@ -64,7 +64,7 @@ interface DiceEvent {
   currency?: string | null;
   genre_tags?: string[];
   type_tags?: string[];
-  artists?: DiceArtistsEntry[];
+  artists?: DiceArtistEntry[];
   detailed_artists?: DiceArtistObject[]; // source la plus fiable quand présente
   lineup?: DiceScheduleEntry[]; // programme horaire, pas des artistes — jamais utilisé pour l'extraction
   ticket_types?: DiceTicketType[];
