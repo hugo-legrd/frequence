@@ -17,7 +17,7 @@ export type EventDetail = {
     name: string;
     image_url: string | null;
   } | null;
-  style: string[] | null;
+  category: string | null;
   event_genres: { genres: { name: string } | null }[] | null;
 };
 
