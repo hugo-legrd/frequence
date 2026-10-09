@@ -1,9 +1,10 @@
-import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
-import { useMemo } from 'react';
+import { View, Text, Pressable, ScrollView, ActivityIndicator, useWindowDimensions } from 'react-native';
+import { useMemo, useState } from 'react';
 
 import { useLocalSearchParams, router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { usePublicProfile } from '../../../hooks/profile/usePublicProfile';
 import { useFollow } from '../../../hooks/social/useFollow';
@@ -11,14 +12,16 @@ import { useMutualFriends } from '../../../hooks/social/useMutualFriends';
 import { useUserEvents } from '../../../hooks/events/useUserEvents';
 
 import { useTheme } from '../../../../lib/theme/ThemeContext';
-import type { ThemeColors } from '../../../../lib/theme/tokens';
 
 import RemoteImage from '../../../components/RemoteImage';
-import { ScrollView } from 'react-native-gesture-handler';
+import { SectionHeader, ListeningProfile, EventListRow, 
+  FadeInSection, PastEventGrid, deriveGenreStats, useProfileStyles } 
+from '../../../components/profile/profileParts';
 
 export default function PublicProfileScreen() {
   const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useProfileStyles();
+  const { width } = useWindowDimensions();
 
   const { userId, from } = useLocalSearchParams<{ userId: string, from?: string }>();
   const { profile, loading, setProfile } = usePublicProfile(userId);
@@ -26,38 +29,47 @@ export default function PublicProfileScreen() {
   const { mutuals, totalCount } = useMutualFriends(userId);
   const { events, loading: eventsLoading } = useUserEvents(userId, !!profile?.can_view);
 
+  const [expanded, setExpanded] = useState(false);
+
   const goingEvents = useMemo(() => events.filter(e => !e.is_past), [events]);
   const pastEvents = useMemo(() => events.filter(e => e.is_past), [events]);
+  const genreStats = useMemo(() => deriveGenreStats(pastEvents, colors), [pastEvents, colors]);
+
+  const cell = (width - 40 - 18) / 3;
 
   async function toggleFollow() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (!profile) return;
     const wasFollowing = profile.is_following;
+    const nowFollowing = !wasFollowing;
 
     setProfile({
       ...profile,
-      is_following: !wasFollowing,
+      is_following: nowFollowing,
       followers_count: profile.followers_count + (wasFollowing ? - 1 : 1),
+      can_view: profile.profile_visibility === 'public' || nowFollowing,
     });
 
-    const success = wasFollowing
-      ? await unfollow(profile.id)
-      : await follow(profile.id);
-  
-
-    if (!success) {
-      setProfile({
-        ...profile,
-        is_following: wasFollowing,
+    const ok = wasFollowing ? await unfollow(profile.id) : await follow(profile.id);
+    if (!ok) {
+      setProfile({ 
+        ...profile, 
+        is_following: wasFollowing, 
         followers_count: profile.followers_count,
+        can_view: profile.can_view,
       });
     }
+  }
+
+  function goBack() {
+    if (from) router.navigate(from as any);
+    else router.back();
   }
 
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color="#a78bfa" />
+        <ActivityIndicator color={colors.accent} />
       </View>
     );
   }
@@ -72,198 +84,160 @@ export default function PublicProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <Pressable style={styles.backBtn} onPress={() => (from ? router.navigate(from as any) : router.back())}>
+      <Pressable style={styles.backFloat} onPress={goBack} hitSlop={8}>
         <Text style={styles.backArrow}>←</Text>
       </Pressable>
 
-      <ScrollView contentContainerStyle={styles.header} showsVerticalScrollIndicator={false}>
-        {profile.avatar_url ? (
-          <RemoteImage uri={profile.avatar_url} size={80} borderRadius={40} />
-        ) : (
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {profile.display_name.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
-        <Text style={styles.name}>{profile.display_name}</Text>
-        {profile.handle && <Text style={styles.handle}>@{profile.handle}</Text>}
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <LinearGradient 
+          colors={colors.headerBand}
+          locations={[0, 0.6, 1]}
+          start={{ x: 0.15, y: 0 }}
+          end={{ x: 0.85, y: 1 }}
+          style={styles.band}
+        />
 
-        <View style={styles.statsRow}>
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>{profile.followers_count}</Text>
-            <Text style={styles.statLabel}>Abonnés</Text>
-          </View>
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>{profile.following_count}</Text>
-            <Text style={styles.statLabel}>Abonnements</Text>
-          </View>
-        </View>
+        <FadeInSection delay={0}>
+          <View style={styles.identity}>
+            <View style={styles.identityTop}>
+              {profile.avatar_url ? (
+                <View style={styles.avatarRing}>
+                  <RemoteImage uri={profile.avatar_url} size={76} borderRadius={38} />
+                </View>
+              ) : (
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarLetter}>
+                    {profile.display_name.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+              )}
 
-        <Pressable
-          style={[styles.followBtn, profile.is_following && styles.followBtnActive]}
-          onPress={toggleFollow}
-          disabled={followLoading}
-        >
-          <Text style={[styles.followBtnText, profile.is_following && styles.followBtnTextActive]}>
-            {profile.is_following ? 'Suivi' : 'Suivre'}
-          </Text>
-        </Pressable>
-        {mutuals.length > 0 && (
-            <Text style={styles.mutualsText}>
-              Amis en commun: {mutuals.map(m => m.display_name).join(', ')}
-              {totalCount > mutuals.length && ` +${totalCount - mutuals.length} autre${totalCount - mutuals.length > 1 ? 's' : ''}`}
-            </Text>
-        )}
-        
-        {profile.can_view ? (
-          <View style={styles.contentSection}>
-            {eventsLoading ? (
-              <ActivityIndicator color={colors.accent} style={{ marginTop: 20 }} />
-            ) : events.length === 0 ? (
-              <Text style={styles.sectionEmpty}>Aucun concert pour l'instant.</Text>
-            ) : (
-              <>
-                {goingEvents.length > 0 && (
-                  <>
-                    <Text style={styles.sectionLabel}>À VENIR · {goingEvents.length}</Text>
-                    {goingEvents.map(item => (
-                      <Pressable
-                        key={item.event_id}
-                        style={styles.eventRow}
-                        onPress={() => router.push(`/(tabs)/screens/event/${item.event_id}`)}
-                      >
-                        <RemoteImage uri={item.image_url} size={44} borderRadius={8} />
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.eventName} numberOfLines={1}>
-                            {item.artist_name ?? item.event_name}
-                          </Text>
-                          <Text style={styles.eventMeta} numberOfLines={1}>{item.venue_name}</Text>
-                        </View>
-                        {item.status === 'going' && (
-                          <View style={styles.badge}><Text style={styles.badgeText}>J'y vais</Text></View>
-                        )}
-                      </Pressable>
-                    ))}
-                  </>
-                )}
-                  {pastEvents.length > 0 && (
-                    <>
-                      <Text style={[styles.sectionLabel, { marginTop: 24 }]}>
-                          CONCERTS PASSÉS · {pastEvents.length}
-                      </Text>
-                      {pastEvents.map(item => (
-                        <Pressable
-                          key={item.event_id}
-                          style={styles.eventRow}
-                          onPress={() => router.push(`(tabs)/screens/event/${item.event_id}`)}
-                        >
-                          <RemoteImage uri={item.image_url} size={44} borderRadius={8 }/>
-                          <View style={{ flex: 1 }}>
-                            <Text style={styles.eventName} numberOfLines={1}>
-                              {item.artist_name ?? item.event_name}
-                            </Text>
-                            <Text style={styles.eventMeta} numberOfLines={1}>
-                              {item.venue_name}
-                            </Text>
-                          </View>
-                        </Pressable>
-                      ))}
-                    </>
-                  )}
-              </>
+              <View style={styles.identityActions}>
+                <Pressable
+                  style={[styles.followBtn, profile.is_following && styles.followBtnActive]}
+                  onPress={toggleFollow}
+                  disabled={followLoading}
+                  hitSlop={6}
+                >
+                  <Text style={[styles.followLabel, profile.is_following && styles.followLabelActive]}>
+                    {profile.is_following ? 'Suivi' : 'Suivre'}
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+
+            <Text style={styles.name}>{profile.display_name}</Text>
+            {profile.handle && <Text style={styles.handle}>@{profile.handle}</Text>}
+
+            <View style={styles.counts}>
+              <Pressable
+                hitSlop={8}
+                onPress={() => router.push({
+                  pathname: '/(tabs)/screens/amis/followers',
+                  params: { userId: profile.id, name: profile.display_name },
+                })}
+              >
+                <Text style={styles.countValue}>
+                  {profile.followers_count}
+                  <Text style={styles.countLabel}> abonnés</Text>
+                </Text>
+              </Pressable>
+              <Pressable
+                hitSlop={8}
+                onPress={() => router.push({
+                  pathname: '/(tabs)/screens/amis/following',
+                  params: { userId: profile.id, name: profile.display_name }, 
+                })}
+              >
+                <Text style={styles.countValue}>
+                  {profile.following_count}
+                  <Text style={styles.countLabel}> abonnements</Text>
+                </Text>
+              </Pressable>
+            </View>
+
+            {mutuals.length > 0 && (
+              <Text style={styles.mutuals}>
+                {mutuals.map(m => m.display_name).join(', ')}
+                {totalCount > mutuals.length
+                  ? ` et ${totalCount - mutuals.length} autre${totalCount - mutuals.length > 1 ? 's' : ''}`
+                  : ''}
+                {' '}en commun
+              </Text>
             )}
           </View>
-        ) : (
-          <View style={styles.lockedState}>
-            <Feather name="lock" size={22} color={colors.textMuted} />
-            <Text style={styles.lockedTitle}>Ce compte est privé</Text>
-            <Text style={styles.lockedSub}>
-              Abonne toi à {profile.display_name} pour voir les concerts qui l'intéressent.
-            </Text>
+        </FadeInSection>
+        
+        {!profile.can_view ? (
+          <FadeInSection delay={80}>
+            <View style={styles.lockedState}>
+              <Feather name="lock" size={22} color={colors.textMuted} />
+              <Text style={styles.lockedTitle}>Ce compte est privé</Text>
+              <Text style={styles.lockedSub}>
+                Abonne-toi à {profile.display_name} pour voir les concerts qui l'intéressent. 
+              </Text>
+            </View>
+          </FadeInSection>
+        ) : eventsLoading ? (
+          <View style={{ padding: 40, alignItems: 'center'}}>
+            <ActivityIndicator color={colors.accent} />
           </View>
+        ) : events.length === 0 ? (
+          <FadeInSection delay={80}>
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>Aucun concert pour l'instant</Text>
+              <Text style={styles.emptySub}>
+                {profile.display_name} n'a pas encore marqué de concert.
+              </Text>
+            </View>
+          </FadeInSection>
+        ) : (
+          <>
+            <FadeInSection delay={80}>
+              <View style={styles.section}>
+                <SectionHeader label="SON PROFIL D'ÉCOUTE" />
+                <ListeningProfile 
+                  stats={genreStats}
+                  emptyText={`Pas encore assez de concerts passés pour dresser ce profil`}
+                />
+              </View>
+            </FadeInSection>
+
+            {goingEvents.length > 0 && (
+              <FadeInSection delay={140}>
+                  <View style={styles.section}>
+                    <SectionHeader label={`À VENIR · ${goingEvents.length}`} />
+                    {goingEvents.map(item => (
+                      <EventListRow
+                        key={item.event_id}
+                        item={item}
+                        badge={item.status === 'going' ? "J'y vais" : 'Intéressé'}
+                      />
+                    ))}
+                  </View>
+              </FadeInSection>
+            )}
+
+            {pastEvents.length > 0 && (
+              <FadeInSection delay={200}>
+                <View style={styles.section}>
+                  <SectionHeader label={`CONCERTS PASSÉS · ${pastEvents.length}`} />
+                  <PastEventGrid
+                    events={pastEvents}
+                    genreStats={genreStats}
+                    cell={cell}
+                    expanded={expanded}
+                    onToggle={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setExpanded(v => !v);
+                    }}
+                  />
+                </View>
+              </FadeInSection>
+            )}
+          </>
         )}
       </ScrollView>
     </View>
   )
 }
-
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg},
-  center: { flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center'},
-  empty: { color: colors.textMuted, fontSize: 14},
-  backBtn: {
-    position: 'absolute',
-    top: 60,
-    left: 16,
-    zIndex: 10,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backArrow: { color: colors.text, fontSize: 18 },
-  header: {
-    alignItems: 'center',
-    paddingTop: 100,
-    paddingHorizontal: 16,
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: colors.accentSoftBg,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  avatarText: { fontSize: 28, fontWeight: '600', color: colors.accent},
-  name: { fontSize: 20, fontWeight: '600', color: colors.text},
-  statsRow: { flexDirection: 'row', gap: 32, marginTop: 16, marginBottom: 20 },
-  stat: { alignItems: 'center' },
-  statValue: { fontSize: 18, fontWeight: '600', color: colors.text },
-  statLabel: { fontSize: 12, color: colors.textMuted, marginTop: 2},
-  followBtn: {
-    borderWidth: 1, 
-    borderColor: colors.accent, 
-    borderRadius: 10, 
-    paddingHorizontal: 24, 
-    paddingVertical: 10, 
-  },
-  followBtnActive: { backgroundColor: colors.accent },
-  followBtnText: { color: colors.accent, fontSize: 14, fontWeight: '600'},
-  followBtnTextActive: { color: colors.bg },
-  mutualsText: {
-    fontSize: 13,
-    color: colors.textMuted,
-    marginTop: 16,
-    textAlign: 'center',
-    paddingHorizontal: 24
-  },
-  contentSection: {
-    width: "100%",
-    marginTop: 28,
-    paddingHorizontal: 4,
-  },
-  sectionLabel: {
-    fontSize: 10.5,
-    fontWeight: '600',
-    letterSpacing: 1.5,
-    color: colors.textMuted,
-    marginBottom: 12,
-  },
-  handle: { fontSize: 14, color: colors.textMuted, marginTop: 2 },
-  lockedState: { alignItems: 'center', paddingTop: 40, paddingHorizontal: 40, gap: 8 },
-  lockedTitle: { fontSize: 15, fontWeight: '600', color: colors.text },
-  lockedSub: { fontSize: 13, color: colors.textMuted, textAlign: 'center', lineHeight: 19 },
-  sectionEmpty: { fontSize: 13, color: colors.textMuted, textAlign: 'center', marginTop: 20 },
-  eventRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
-  eventName: { fontSize: 14.5, fontWeight: '600', color: colors.text },
-  eventMeta: { fontSize: 12.5, color: colors.textMuted, marginTop: 2 },
-  badge: { borderWidth: 1, borderColor: colors.divider, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
-  badgeText: { color: colors.accent, fontSize: 11.5, fontWeight: '500' },
-})
-};
