@@ -6,17 +6,17 @@ import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { usePublicProfile } from '../../../hooks/profile/usePublicProfile';
-import { useFollow } from '../../../hooks/social/useFollow';
-import { useMutualFriends } from '../../../hooks/social/useMutualFriends';
-import { useUserEvents } from '../../../hooks/events/useUserEvents';
+import { usePublicProfile } from '../../../../lib/hooks/profile/usePublicProfile';
+import { useFollow } from '../../../../lib/hooks/social/useFollow';
+import { useMutualFriends } from '../../../../lib/hooks/social/useMutualFriends';
+import { useUserEvents } from '../../../../lib/hooks/events/useUserEvents';
 
 import { useTheme } from '../../../../lib/theme/ThemeContext';
 
-import RemoteImage from '../../../components/RemoteImage';
+import RemoteImage from '../../../../lib/components/RemoteImage';
 import { SectionHeader, ListeningProfile, EventListRow, 
   FadeInSection, PastEventGrid, deriveGenreStats, useProfileStyles } 
-from '../../../components/profile/profileParts';
+from '../../../../lib/components/profile/profileParts';
 
 export default function PublicProfileScreen() {
   const { colors } = useTheme();

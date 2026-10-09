@@ -6,9 +6,9 @@ import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../lib/services/supabase';
 import { makeStyles } from '../../lib/theme/makeStyles';
-import { StepHeader, Accent } from '../components/StepHeader';
-import GenreChip from '../components/GenreChip';
-import { PrimaryButton } from '../components/auth/PrimaryButton';
+import { StepHeader, Accent } from '../../lib/components/StepHeader';
+import GenreChip from '../../lib/components/GenreChip';
+import { PrimaryButton } from '../../lib/components/auth/PrimaryButton';
 
 const GENRES = [
   'Techno', 'House', 'Hardgroove', 'Uptempo',

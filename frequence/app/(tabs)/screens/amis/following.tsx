@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from "expo-router";
-import FollowListScreen from "../../../components/FollowListScreen";
+import FollowListScreen from "../../../../lib/components/FollowListScreen";
 
 export default function UserFollowers() {
   const { userId, name } = useLocalSearchParams<{ userId: string; name?: string }>();

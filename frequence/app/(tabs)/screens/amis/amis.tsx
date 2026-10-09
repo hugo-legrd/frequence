@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Refre
 
 import { router } from 'expo-router';
 
-import { useFriendsActivity } from '../../../hooks/social/useFriendsActivity';
+import { useFriendsActivity } from '../../../../lib/hooks/social/useFriendsActivity';
 
 import type { FriendActivityRow } from '../../../../lib/types/activity';
 import { useUnreadActivity } from '../../../../lib/context/UnreadActivityContext';

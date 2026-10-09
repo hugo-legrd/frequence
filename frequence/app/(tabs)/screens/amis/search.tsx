@@ -5,9 +5,9 @@ import { View, Text, TextInput, FlatList, Pressable, StyleSheet, ActivityIndicat
 import { router, useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
-import { useUserSearch, UserSearchResult } from '../../../hooks/social/useUserSearch';
-import { useFollow } from '../../../hooks/social/useFollow';
-import { useSearchHistory } from '../../../hooks/social/useSearchHistory';
+import { useUserSearch, UserSearchResult } from '../../../../lib/hooks/social/useUserSearch';
+import { useFollow } from '../../../../lib/hooks/social/useFollow';
+import { useSearchHistory } from '../../../../lib/hooks/social/useSearchHistory';
 
 import { useTheme } from '../../../../lib/theme/ThemeContext';
 import { ThemeColors } from '../../../../lib/theme/tokens';

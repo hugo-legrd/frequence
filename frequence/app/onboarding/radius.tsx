@@ -8,8 +8,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../lib/services/supabase';
 import { useTheme } from '../../lib/theme/ThemeContext';
 import { makeStyles } from '../../lib/theme/makeStyles';
-import { StepHeader, Accent } from '../components/StepHeader';
-import { PrimaryButton } from '../components/auth/PrimaryButton';
+import { StepHeader, Accent } from '../../lib/components/StepHeader';
+import { PrimaryButton } from '../../lib/components/auth/PrimaryButton';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 const RADIUS_OPTIONS = [

@@ -17,16 +17,16 @@ import { isValidEmail, normalizeEmail } from '../../lib/auth/validators';
 import { useGoogleAuth } from '../../lib/auth/useGoogleAuth';
 import { routeAfterAuth } from '../../lib/auth/routeAfterAuth';
 
-import { AuthScreen } from '../components/auth/AuthScreen';
-import { AuthHeader } from '../components/auth/AuthHeader';
-import { Field } from '../components/auth/Field';
-import { PrimaryButton } from '../components/auth/PrimaryButton';
-import { GoogleButton } from '../components/auth/GoogleButton';
-import { Divider } from '../components/auth/Divider';
-import { Banner } from '../components/auth/Banner';
-import { PasswordRules } from '../components/auth/PasswordRules';
+import { AuthScreen } from '../../lib/components/auth/AuthScreen';
+import { AuthHeader } from '../../lib/components/auth/AuthHeader';
+import { Field } from '../../lib/components/auth/Field';
+import { PrimaryButton } from '../../lib/components/auth/PrimaryButton';
+import { GoogleButton } from '../../lib/components/auth/GoogleButton';
+import { Divider } from '../../lib/components/auth/Divider';
+import { Banner } from '../../lib/components/auth/Banner';
+import { PasswordRules } from '../../lib/components/auth/PasswordRules';
 
-import { useHandleAvailability } from '../hooks/social/useHandleAvailability';
+import { useHandleAvailability } from '../../lib/hooks/social/useHandleAvailability';
 
 type Errors = { firstName?: string; handle?: string; email?: string; password?: string; form?: string };
 

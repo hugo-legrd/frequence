@@ -1,4 +1,4 @@
-import FollowListScreen from "../../../components/FollowListScreen";
+import FollowListScreen from "../../../../lib/components/FollowListScreen";
 
 export default function MyFollowing() {
   return (

@@ -19,10 +19,10 @@ import type { EventDetail } from '../../../../lib/types/event';
 import { useTheme } from '../../../../lib/theme/ThemeContext';
 import { ThemeColors } from '../../../../lib/theme/tokens';
 
-import VenueMiniMap from '../../../components/MiniMap';
-import FriendsGoingRow from '../../../components/FriendsGoingRow';
+import VenueMiniMap from '../../../../lib/components/MiniMap';
+import FriendsGoingRow from '../../../../lib/components/FriendsGoingRow';
 
-import { useEventInterest } from '../../../hooks/events/useEventInterest';
+import { useEventInterest } from '../../../../lib/hooks/events/useEventInterest';
 
 const CATEGORY_LABELS: Record<string, string> = {
   gig: 'Concert',

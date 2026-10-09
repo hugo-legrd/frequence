@@ -4,9 +4,9 @@ import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndic
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
-import { useEditableGenres } from "../../../hooks/profile/useEditableGenres";
-import { useEditableName } from "../../../hooks/profile/useEditableName";
-import { useProfileVisibility } from "../../../hooks/social/useProfileVisibility";
+import { useEditableGenres } from "../../../../lib/hooks/profile/useEditableGenres";
+import { useEditableName } from "../../../../lib/hooks/profile/useEditableName";
+import { useProfileVisibility } from "../../../../lib/hooks/social/useProfileVisibility";
 
 import { supabase } from "../../../../lib/services/supabase";
 import { useTheme } from '../../../../lib/theme/ThemeContext';

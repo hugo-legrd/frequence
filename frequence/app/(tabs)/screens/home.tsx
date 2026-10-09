@@ -4,13 +4,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/services/supabase';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { useRandomEvent } from '../../hooks/events/useRandomEvent';
-import { useHomeFriendsPick } from '../../hooks/social/useHomeFriendsPick';
-import { useLatestEvents } from '../../hooks/events/useLatestEvents';
-import RemoteImage from '../../components/RemoteImage';
+import { useRandomEvent } from '../../../lib/hooks/events/useRandomEvent';
+import { useHomeFriendsPick } from '../../../lib/hooks/social/useHomeFriendsPick';
+import { useLatestEvents } from '../../../lib/hooks/events/useLatestEvents';
+import RemoteImage from '../../../lib/components/RemoteImage';
 import { useTheme } from '../../../lib/theme/ThemeContext';
 import type { ThemeColors } from '../../../lib/theme/tokens';
-import { useMyProfile } from '../../hooks/profile/useMyProfile';
+import { useMyProfile } from '../../../lib/hooks/profile/useMyProfile';
 
 
 const SEARCH_ROUTE = '/(tabs)/screens/amis/search';

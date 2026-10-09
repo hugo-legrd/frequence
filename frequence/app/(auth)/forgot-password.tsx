@@ -9,11 +9,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { makeStyles } from '../../lib/theme/makeStyles';
 import { authErrorMessage } from '../../lib/auth/authErrors';
 import { isValidEmail, normalizeEmail } from '../../lib/auth/validators';
-import { AuthScreen } from '../components/auth/AuthScreen';
-import { AuthHeader } from '../components/auth/AuthHeader';
-import { Field } from '../components/auth/Field';
-import { PrimaryButton } from '../components/auth/PrimaryButton';
-import { Banner } from '../components/auth/Banner';
+import { AuthScreen } from '../../lib/components/auth/AuthScreen';
+import { AuthHeader } from '../../lib/components/auth/AuthHeader';
+import { Field } from '../../lib/components/auth/Field';
+import { PrimaryButton } from '../../lib/components/auth/PrimaryButton';
+import { Banner } from '../../lib/components/auth/Banner';
 
 const RESET_REDIRECT = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/auth/v1/verify`;
 

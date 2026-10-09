@@ -4,12 +4,12 @@ import { routeAfterAuth } from '../../lib/auth/routeAfterAuth';
 import  * as Haptics from 'expo-haptics';
 import { supabase } from '../../lib/services/supabase';
 import { makeStyles } from '../../lib/theme/makeStyles';
-import { useHandleAvailability } from '../hooks/social/useHandleAvailability';
-import { AuthScreen } from '../components/auth/AuthScreen';
-import { AuthHeader } from '../components/auth/AuthHeader';
-import { Field } from '../components/auth/Field';
-import { PrimaryButton } from '../components/auth/PrimaryButton';
-import { Banner } from '../components/auth/Banner';
+import { useHandleAvailability } from '../../lib/hooks/social/useHandleAvailability';
+import { AuthScreen } from '../../lib/components/auth/AuthScreen';
+import { AuthHeader } from '../../lib/components/auth/AuthHeader';
+import { Field } from '../../lib/components/auth/Field';
+import { PrimaryButton } from '../../lib/components/auth/PrimaryButton';
+import { Banner } from '../../lib/components/auth/Banner';
 
 export default function ChooseHandleScreen() {
   const s = useStyles();

@@ -2,11 +2,11 @@ import { View, Text, FlatList, ActivityIndicator, StyleSheet, Image, Pressable }
 import { router } from 'expo-router';
 import { useState, useMemo } from 'react';
 
-import { useEvents } from '../../hooks/events/useEvents';
-import { useEventCounts } from '../../hooks/events/useEventCounts';
+import { useEvents } from '../../../lib/hooks/events/useEvents';
+import { useEventCounts } from '../../../lib/hooks/events/useEventCounts';
 
-import FilterBar, { Filters } from '../../components/FilterBar';
-import InterestButton from '../../components/InterestButton';
+import FilterBar, { Filters } from '../../../lib/components/FilterBar';
+import InterestButton from '../../../lib/components/InterestButton';
 
 import { useTheme } from '../../../lib/theme/ThemeContext';
 import type { ThemeColors } from '../../../lib/theme/tokens';

@@ -14,9 +14,9 @@ import Animated, { useSharedValue, useAnimatedStyle, interpolate, Extrapolation 
 
 import * as Location from 'expo-location';
 
-import ExplorerBottomSheet from '../../components/ExplorerBottomSheet'
+import ExplorerBottomSheet from '../../../lib/components/ExplorerBottomSheet'
 ;
-import { useRecommendations } from '../../hooks/events/useRecommendations';
+import { useRecommendations } from '../../../lib/hooks/events/useRecommendations';
 
 import { supabase } from '../../../lib/services/supabase';
 import { useTheme } from '../../../lib/theme/ThemeContext';

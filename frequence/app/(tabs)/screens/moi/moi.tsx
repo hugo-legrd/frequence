@@ -11,16 +11,16 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../../../lib/theme/ThemeContext';
 import { muted } from '../../../../lib/theme/tokens';
 
-import RemoteImage from '../../../components/RemoteImage';
-import ProfileShareCard from '../../../components/ProfileShareCard';
+import RemoteImage from '../../../../lib/components/RemoteImage';
+import ProfileShareCard from '../../../../lib/components/ProfileShareCard';
 import { SectionHeader, ListeningProfile, EventListRow, FadeInSection,
   PastEventGrid, deriveGenreStats, monthYear, useProfileStyles, } 
-from '../../../components/profile/profileParts';
+from '../../../../lib/components/profile/profileParts';
 
-import { useShareProfile } from '../../../hooks/social/useShareProfile';
-import { useMyArtists } from '../../../hooks/profile/useMyArtists';
-import { useMyProfile } from '../../../hooks/profile/useMyProfile';
-import { useMyEvents } from '../../../hooks/events/useMyEvents';
+import { useShareProfile } from '../../../../lib/hooks/social/useShareProfile';
+import { useMyArtists } from '../../../../lib/hooks/profile/useMyArtists';
+import { useMyProfile } from '../../../../lib/hooks/profile/useMyProfile';
+import { useMyEvents } from '../../../../lib/hooks/events/useMyEvents';
 
 
 type ArtistWithGenre = ReturnType<typeof useMyArtists>['artists'][number] & {

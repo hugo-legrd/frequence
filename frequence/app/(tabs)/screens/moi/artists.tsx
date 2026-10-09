@@ -1,8 +1,8 @@
 import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { useMemo } from 'react';
-import { useMyArtists } from '../../../hooks/profile/useMyArtists';
-import RemoteImage from '../../../components/RemoteImage';
+import { useMyArtists } from '../../../../lib/hooks/profile/useMyArtists';
+import RemoteImage from '../../../../lib/components/RemoteImage';
 import { useTheme } from '../../../../lib/theme/ThemeContext';
 import type { ThemeColors } from '../../../../lib/theme/tokens';
 
