@@ -93,6 +93,26 @@ export function useEvents(filters?: Filters) {
     const isToday = filters?.date === 'today';
     const dateRange = filters?.date ? getDateRange(filters.date) : null;
 
+
+    // Filtre genres: on récupère d'abord les ids concernés, puis on pagine dessus.
+    let genreEventIds: string[] | null = null;
+    if (filters?.genres && filters.genres.length > 0) {
+      const { data : rows } = await supabase
+        .from('event_genres')
+        .select('event_id, genres!inner(name)')
+        .in('genres.name', filters.genres);
+
+      genreEventIds = [...new Set((rows ?? []).map((r: any) => r.event_id))];
+
+      if (genreEventIds.length === 0) {
+        if (pageNum === 0) { setEvents([]); setLoading(false); }
+        else setLoadingMore(false);
+        setHasMore(false);
+        return;
+      }
+    }
+
+
     let query = supabase
       .from('events')
       .select(`
@@ -102,8 +122,13 @@ export function useEvents(filters?: Filters) {
           event_genres ( genres ( name ) )
         `)
         .order('starts_at', { ascending: true })
+        .order('id', { ascending: true })
         .not('starts_at', 'is', null)
         .range(from, to);
+
+    if (genreEventIds) {
+      query = query.in('id', genreEventIds);
+    }
 
     if (dateRange) {
       query = query
@@ -118,7 +143,7 @@ export function useEvents(filters?: Filters) {
     if (error) {
       setError('Impossible de charger les événements.');
     } else {
-      let mapped = (data ?? []).map((e: any) => ({
+      const mapped = (data ?? []).map((e: any) => ({
         ...e,
         venue: e.venues ?? null,
         artist: e.artists ?? null,
@@ -128,21 +153,12 @@ export function useEvents(filters?: Filters) {
       }));
 
 
-      if (filters?.genres && filters.genres.length > 0) {
-        mapped = mapped.filter(e => 
-          filters.genres.some(g => 
-            e.name.toLowerCase().includes(g.toLowerCase()) ||
-            e.artist?.name.toLowerCase().includes(g.toLowerCase())
-          )
-        );
-      }
-
       if (pageNum === 0) {
         setEvents(mapped);
       } else {
         setEvents(prev => [...prev, ...mapped]);
       }
-        setHasMore(mapped.length === PAGE_SIZE);
+      setHasMore((data ?? []).length === PAGE_SIZE);
     }
 
     if (pageNum === 0) setLoading(false);
