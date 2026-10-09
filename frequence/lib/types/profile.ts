@@ -20,5 +20,6 @@ export type MyEventRow = {
   status: 'interested' | 'going';
   is_past: boolean;
   image_url: string | null;
-  style: string [] | null;
+  category: string | null;
+  genres: string[];
 }

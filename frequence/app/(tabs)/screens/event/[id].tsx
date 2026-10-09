@@ -27,12 +27,20 @@ import { useEventInterest } from '../../../hooks/events/useEventInterest';
 const CATEGORY_LABELS: Record<string, string> = {
   gig: 'Concert',
   dj: 'DJ Set',
+  talks: 'Rencontre',
+  theatre: 'Théâtre',
+  podcast: 'Podcast',
+  foodanddrink: 'Food & Drink',
+  playback: 'Écoute',
+  artistsigning: 'Dédicace',
+  social: 'Soirée',
+  workshop: 'Atelier',
+  art: 'Art',
 }
 
-function getCategoryLabel(style?: string[] | null): string {
-  if (!style || style.length === 0) return 'Événement';
-  const prefix = style[0]?.split(':')[0]?.toLowerCase();
-  return CATEGORY_LABELS[prefix] ?? 'Événement';
+function getCategoryLabel(category?: string | null): string {
+  if (!category) return 'Événement';
+  return CATEGORY_LABELS[category.toLowerCase()] ?? 'Événement';
 }
 
 export default function EventDetailScreen() {
@@ -43,7 +51,6 @@ export default function EventDetailScreen() {
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const { status: interest, loading: interestLoading, setInterest } = useEventInterest(id);
-  console.log('detail id:', id?.slice(0, 8), 'interest:', interest);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,7 +59,7 @@ export default function EventDetailScreen() {
       const { data, error } = await supabase
         .from('events')
         .select(`
-          id, name, starts_at, image_url, ticket_link, source, style,
+          id, name, starts_at, image_url, ticket_link, source, category,
           venues (id, name, address, latitude, longitude),
           artists (id, name, image_url),
           event_genres ( genres ( name ) )
@@ -134,7 +141,7 @@ export default function EventDetailScreen() {
       );
     }
 
-  const category = getCategoryLabel(event.style);
+  const category = getCategoryLabel(event.category);
   const lineup: { name: string; role?: string }[] | undefined = (event as any).lineup;
   const genreNames = (event.event_genres ?? [])
     .map((eg) => eg.genres?.name)

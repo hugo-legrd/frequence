@@ -15,7 +15,7 @@ export function useMyEvents() {
     });
 
     if (error) console.error(error);
-    else setEvents(data ?? []);
+    else setEvents((data ?? []) as MyEventRow[]);
     setLoading(false);
   }
 
