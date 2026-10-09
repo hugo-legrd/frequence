@@ -203,18 +203,21 @@ export type Database = {
           created_at: string | null
           event_id: string
           status: string | null
+          updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string | null
           event_id: string
           status?: string | null
+          updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string | null
           event_id?: string
           status?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -368,6 +371,26 @@ export type Database = {
     }
     Functions: {
       can_view_user: { Args: { target: string }; Returns: boolean }
+      friends_activity_feed: {
+        Args: never
+        Returns: {
+          activity_at: string
+          actor_avatar_url: string
+          actor_handle: string
+          actor_id: string
+          actor_name: string
+          artist_name: string
+          event_id: string
+          event_name: string
+          kind: string
+          starts_at: string
+          status: string
+          target_handle: string
+          target_name: string
+          target_user_id: string
+          venue_name: string
+        }[]
+      }
       get_active_genres: {
         Args: never
         Returns: {
@@ -404,16 +427,22 @@ export type Database = {
         }[]
       }
       get_friends_activity: {
-        Args: { current_user_id: string; limit_count?: number }
+        Args: { before_at?: string; limit_count?: number }
         Returns: {
-          actor_display_name: string
+          activity_at: string
+          actor_avatar_url: string
+          actor_handle: string
           actor_id: string
+          actor_name: string
           artist_name: string
-          created_at: string
           event_id: string
           event_name: string
+          kind: string
           starts_at: string
           status: string
+          target_handle: string
+          target_name: string
+          target_user_id: string
           venue_name: string
         }[]
       }
@@ -519,6 +548,7 @@ export type Database = {
           venue_name: string
         }[]
       }
+      get_unread_activity_count: { Args: { since?: string }; Returns: number }
       get_user_events: {
         Args: { current_user_id: string; target_user_id: string }
         Returns: {
