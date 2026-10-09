@@ -4,7 +4,7 @@ import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 
 export function useShareProfile() {
-  const shotRef = useRef<ViewShot>(null);
+  const shotRef = useRef<React.ComponentRef<typeof ViewShot>>(null);
 
   async function share() {
     if (!shotRef.current?.capture) return;

@@ -96,6 +96,7 @@ export type Database = {
       events: {
         Row: {
           artist_id: string | null
+          category: string | null
           created_at: string
           id: string
           image_url: string | null
@@ -108,6 +109,7 @@ export type Database = {
         }
         Insert: {
           artist_id?: string | null
+          category?: string | null
           created_at?: string
           id?: string
           image_url?: string | null
@@ -120,6 +122,7 @@ export type Database = {
         }
         Update: {
           artist_id?: string | null
+          category?: string | null
           created_at?: string
           id?: string
           image_url?: string | null
@@ -463,13 +466,14 @@ export type Database = {
         Args: { current_user_id: string }
         Returns: {
           artist_name: string
+          category: string
           event_id: string
           event_name: string
+          genres: string[]
           image_url: string
           is_past: boolean
           starts_at: string
           status: string
-          style: string[]
           venue_name: string
         }[]
       }
@@ -519,13 +523,14 @@ export type Database = {
         Args: { current_user_id: string; target_user_id: string }
         Returns: {
           artist_name: string
+          category: string
           event_id: string
           event_name: string
+          genres: string[]
           image_url: string
           is_past: boolean
           starts_at: string
           status: string
-          style: string[]
           venue_name: string
         }[]
       }

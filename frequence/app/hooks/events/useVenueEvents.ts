@@ -24,6 +24,7 @@ export function useVenueEvents(venueId: string | null) {
 
     async function fetchEvents() {
       setLoading(true);
+      if (!venueId) return;
       const { data, error } = await supabase
         .from('events')
         .select(`

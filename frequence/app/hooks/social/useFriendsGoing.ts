@@ -21,7 +21,7 @@ export function useFriendsGoing(eventId: string) {
 
       if (cancelled) return;
       if (error) console.error(error);
-      else setFriends(data ?? []);
+      else setFriends((data ?? []) as FriendGoing[]);
       setLoading(false);
     }
 

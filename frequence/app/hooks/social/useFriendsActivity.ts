@@ -19,7 +19,7 @@ export function useFriendsActivity() {
     });
 
     if (error) console.error(error);
-    else setActivity(data ?? []);
+    else setActivity((data ?? []) as FriendActivityRow[]);
     setLoading(false);
   }
 

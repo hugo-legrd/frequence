@@ -15,7 +15,7 @@ export function useMyProfile() {
     });
 
     if (error) console.error(error);
-    else setProfile(data?.[0] ?? null);
+    else setProfile(data?.[0] ? (data[0] as unknown as MyProfile) : null);
     setLoading(false);
   }
 

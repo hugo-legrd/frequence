@@ -28,7 +28,7 @@ export default function GenresScreen(){
     supabase.from('genres').select('id, name').then(({ data }) => {
       if (data) {
         const map: Record<string, string> = {};
-        data.forEach(g => {map[g.name] = g.id; });
+        data.forEach(g => { if (g.name) map[g.name] = g.id; });
         setGenreMap(map);
       }
     });
