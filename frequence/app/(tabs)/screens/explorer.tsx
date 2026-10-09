@@ -11,30 +11,17 @@ import {
 // PROVIDER_DEFAULT = utilise Apple Maps sur iOS, Google Maps sur Android
 import MapView, { Marker, PROVIDER_DEFAULT, Callout } from 'react-native-maps';
 import Animated, { useSharedValue, useAnimatedStyle, interpolate, Extrapolation } from 'react-native-reanimated';
+
 import * as Location from 'expo-location';
-import { supabase } from '../../../lib/services/supabase';
-import ExplorerBottomSheet from '../../components/ExplorerBottomSheet';
+
+import ExplorerBottomSheet from '../../components/ExplorerBottomSheet'
+;
 import { useRecommendations } from '../../hooks/events/useRecommendations';
+
+import { supabase } from '../../../lib/services/supabase';
 import { useTheme } from '../../../lib/theme/ThemeContext';
 import type { ThemeColors } from '../../../lib/theme/tokens';
-
-type Venue = {
-  id: string;
-  name: string;
-  address: string | null;
-  latitude: number;
-  longitude: number;
-}; 
-
-type Store = {
-  id: string;
-  name: string;
-  address: string | null;
-  latitude: number;
-  longitude: number;
-  schedule: string | null;
-  website: string | null;
-}
+import type { Venue, Store } from '../../../lib/types/explorer';
 
 export default function ExplorerScreen() {
   const { colors } = useTheme();
@@ -185,7 +172,7 @@ export default function ExplorerScreen() {
               latitude: venue.latitude,
               longitude: venue.longitude,
             }}
-            title={venue.name}
+            title={venue.name ?? undefined}
             description={venue.address ?? ''}
             pinColor={colors.genre.festival.base}
             onPress={() => {
@@ -220,7 +207,7 @@ export default function ExplorerScreen() {
               latitude: store.latitude,
               longitude: store.longitude,
             }} 
-            title={store.name}
+            title={store.name ?? undefined}
             description={store.address ?? ''}
             pinColor={colors.accent}
             onPress={() => {

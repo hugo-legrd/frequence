@@ -1,34 +1,21 @@
-import { use, useEffect, useRef, useMemo } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import { Animated, View, Text, StyleSheet, Pressable, Linking, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
+
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { useRecommendations, ArtistRecommendation } from "../hooks/events/useRecommendations";
+
 import { router } from 'expo-router';
+
+import { useRecommendations, ArtistRecommendation } from "../hooks/events/useRecommendations";
+import { useVenueEvents } from "../hooks/events/useVenueEvents";
+
 import SearchBar from "./SearchBar";
 import ArtistRecommendationCard from "./ArtistRecommendationCard";
-import { useVenueEvents } from "../hooks/events/useVenueEvents";
 import RemoteImage from "./RemoteImage";
+
 import { useTheme } from "../../lib/theme/ThemeContext";
 import { ThemeColors } from "../../lib/theme/tokens";
-
-
-type Venue = {
-  id: string;
-  name: string;
-  address: string | null;
-  latitude: number;
-  longitude: number;
-};
-
-type Store = {
-  id: string;
-  name: string;
-  address: string | null;
-  latitude: number;
-  longitude: number;
-  schedule: string | null;
-  website: string | null;
-}
+import type { Venue, Store } from "../../lib/types/explorer";
 
 type Props = {
   selectedVenue: Venue | null;
