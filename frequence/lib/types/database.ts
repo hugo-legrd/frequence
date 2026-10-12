@@ -150,6 +150,39 @@ export type Database = {
           },
         ]
       }
+      follow_requests: {
+        Row: {
+          created_at: string
+          requester_id: string
+          target_id: string
+        }
+        Insert: {
+          created_at?: string
+          requester_id: string
+          target_id: string
+        }
+        Update: {
+          created_at?: string
+          requester_id?: string
+          target_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "follow_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follow_requests_target_id_fkey"
+            columns: ["target_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       follows: {
         Row: {
           created_at: string | null
@@ -371,6 +404,8 @@ export type Database = {
     }
     Functions: {
       can_view_user: { Args: { target: string }; Returns: boolean }
+      cancel_follow_request: { Args: { target: string }; Returns: undefined }
+      follow_user: { Args: { target: string }; Returns: string }
       friends_activity_feed: {
         Args: never
         Returns: {
@@ -422,8 +457,20 @@ export type Database = {
           avatar_url: string
           display_name: string
           handle: string
+          has_requested: boolean
           id: string
           is_following: boolean
+          profile_visibility: string
+        }[]
+      }
+      get_follow_requests: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          handle: string
+          name: string
+          requested_at: string
+          requester_id: string
         }[]
       }
       get_friends_activity: {
@@ -531,6 +578,7 @@ export type Database = {
           followers_count: number
           following_count: number
           handle: string
+          has_requested: boolean
           id: string
           is_following: boolean
           profile_visibility: string
@@ -565,14 +613,21 @@ export type Database = {
         }[]
       }
       is_handle_available: { Args: { candidate: string }; Returns: boolean }
+      is_public_user: { Args: { target: string }; Returns: boolean }
+      respond_follow_request: {
+        Args: { accept: boolean; requester: string }
+        Returns: boolean
+      }
       search_all: { Args: { query: string }; Returns: Json }
       search_users: {
         Args: { current_user_id: string; search_term: string }
         Returns: {
           display_name: string
           handle: string
+          has_requested: boolean
           id: string
           is_following: boolean
+          profile_visibility: string
         }[]
       }
       set_my_handle: { Args: { new_handle: string }; Returns: string }

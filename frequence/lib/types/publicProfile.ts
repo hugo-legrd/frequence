@@ -9,4 +9,5 @@ export type PublicProfile = {
   followers_count: number;
   following_count: number;
   events_count: number;
+  has_requested: boolean;
 };

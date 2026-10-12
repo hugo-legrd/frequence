@@ -31,10 +31,11 @@ export function useUnreadActivityCount() {
     if (typeof data === 'number') setCount(data);
   }, []);
 
+  // L'activité vue ne compte plus, mais les demandes d'abonnmeent en attente restent dans le badge
   const markAsSeen = useCallback(async () => {
     await AsyncStorage.setItem(LAST_SEEN_KEY, new Date().toISOString());
-    setCount(0);
-  }, []);
+    await refresh();
+  }, [refresh]);
 
   useEffect(() => {
     refresh();

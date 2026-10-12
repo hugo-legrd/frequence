@@ -1,10 +1,14 @@
-import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
+import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import { useMemo, useState } from 'react';
+
+import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+
 import RemoteImage from './RemoteImage';
+
 import { useFollowList } from '../hooks/social/useFollowList';
-import { useFollow } from '../hooks/social/useFollow';
+import { useFollow, initialFollowState, FOLLOW_LABELS, type FollowState } from '../hooks/social/useFollow';
+
 import { useTheme } from '../theme/ThemeContext';
 import type { ThemeColors } from '../theme/tokens';
 
@@ -20,16 +24,46 @@ export default function FollowListScreen({ title, kind, userId, emptyText, backH
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { users, loading } = useFollowList(userId, kind);
-  const { follow, unfollow } = useFollow();
-  const [localState, setLocalState] = useState<Record<string, boolean>>({});
+  
+  const { toggle: toggleFollow } = useFollow();
+  const [localState, setLocalState] = useState<Record<string, FollowState>>({});
 
-  async function toggle(user: { id: string; is_following: boolean }) {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const current = localState[user.id] ?? user.is_following;
-    setLocalState(prev => ({ ...prev, [user.id]: !current}));
-    const ok = current ? await unfollow(user.id) : await follow(user.id);
-    if (!ok) setLocalState(prev => ({ ...prev, [user.id]: current }));
+  type ListUser = (typeof users)[number];
+
+  function followState(user: ListUser): FollowState {
+    return localState[user.id] ?? initialFollowState(user);
   }
+
+  async function runToggle(user: ListUser, current: FollowState) {
+    const isPrivate = user.profile_visibility === 'followers';
+    // Prédiction : abonné/demandé -> rien; rien -> demandé si privé, abonné sinon
+    const optimistic: FollowState = current !== 'none' ? 'none' : isPrivate ? 'requested' : 'following';
+    setLocalState(prev => ({ ...prev, [user.id]: optimistic }));
+
+    const result = await toggleFollow(user.id, current);
+    // Le serveur a le dernier mot; rollback si l'action a échoué
+    setLocalState(prev => ({ ...prev, [user.id]: result ?? current }));
+  }
+
+  function toggle(user: ListUser) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const current = followState(user);
+
+    // Se désabonner d'un compte privé oblige à refaire une demande: on confirme
+    if (current === 'following' && user.profile_visibility === 'followers') {
+      Alert.alert(
+        `Ne plus suivre ${user.display_name ?? 'cet utilisateur'} ?`,
+        'Ce compte est privé: il faudra refaire une demande pour voir ses concerts.',
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { text: 'Ne plus suivre', style: 'destructive', onPress: () => runToggle(user, current) },
+        ],
+      );
+      return;
+    }
+
+    runToggle(user, current);
+  } 
 
   return (
     <View style={styles.container}>
@@ -51,7 +85,8 @@ export default function FollowListScreen({ title, kind, userId, emptyText, backH
           keyExtractor={item => item.id}
           contentContainerStyle={styles.list}
           renderItem={({ item }) => {
-            const following = localState[item.id] ?? item.is_following;
+            const state = followState(item);
+            const active = state !== 'none';
             return (
               <View style={styles.row}>
                 <Pressable
@@ -64,23 +99,23 @@ export default function FollowListScreen({ title, kind, userId, emptyText, backH
                   {item.avatar_url ? (
                     <RemoteImage uri={item.avatar_url} size={42} borderRadius={21} />
                   ) : (
-                    <View>
+                    <View style={styles.avatar}>
                       <Text style={styles.avatarLetter}>
                         {(item.display_name ?? '?').charAt(0).toUpperCase()}
                       </Text>
                     </View>
                   )}
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.name}>{item.display_name ?? 'Utilsateur'}</Text>
+                    <Text style={styles.name}>{item.display_name ?? 'Utilisateur'}</Text>
                     {item.handle && <Text style={styles.handle}>@{item.handle}</Text>}
                   </View>
                 </Pressable>
                 <Pressable
-                  style={[styles.btn, following && styles.btnActive]}
-                  onPress={() => toggle({ id: item.id, is_following: item.is_following })}
+                  style={[styles.btn, active && styles.btnActive]}
+                  onPress={() => toggle(item)}
                 >
-                  <Text style={[styles.btnText, following && styles.btnTextActive]}>
-                    {following ? 'Suivi' : 'Suivre'}
+                  <Text style={[styles.btnText, active && styles.btnTextActive]}>
+                    {FOLLOW_LABELS[state]}
                   </Text>
                 </Pressable>
               </View>

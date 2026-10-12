@@ -6,6 +6,8 @@ export type UserSearchResult = {
   display_name: string | null;
   handle: string | null;
   is_following: boolean;
+  has_requested: boolean;
+  profile_visibility: 'public' | 'followers';
 };
 
 const MIN_CHARS = 2;
@@ -34,7 +36,7 @@ export function useUserSearch(query: string) {
         search_term: query.trim(),
         current_user_id: user.id,
       });
-      if (!error) setResults(data ?? []);
+      if (!error) setResults((data ?? []) as UserSearchResult[]);
       setLoading(false);
     }, DEBOUNCE_MS);
 

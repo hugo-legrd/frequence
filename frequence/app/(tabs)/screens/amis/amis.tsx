@@ -1,12 +1,15 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, SectionList, ActivityIndicator, Pressable, RefreshControl, Image } from 'react-native';
 
 import { router, useFocusEffect } from 'expo-router';
 
 import { useFriendsActivity } from '../../../../lib/hooks/social/useFriendsActivity';
+import { useFollowRequests } from '../../../../lib/hooks/social/useFollowRequests';
 
 import type { FriendActivityRow } from '../../../../lib/types/activity';
+
 import { useUnreadActivity } from '../../../../lib/context/UnreadActivityContext';
+
 import { useTheme } from '../../../../lib/theme/ThemeContext';
 import type { ThemeColors } from '../../../../lib/theme/tokens';
 
@@ -129,17 +132,19 @@ export default function FriendsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const sections = useMemo(() => groupByDay(activity), [activity]);
   const { markAsSeen } = useUnreadActivity();
+  const { requests, refresh: refreshRequests } = useFollowRequests();
 
   const firstFocus = useRef(true);
   useFocusEffect(
     useCallback(() => {
       markAsSeen();
       if (firstFocus.current) {
-        firstFocus.current = false;
+        firstFocus.current = false; // les hooks font déjà le chargement initial
       } else {
         refetch();
+        refreshRequests(); // Une demande a pu être traitée depuis l'écran Demandes
       }
-    }, [markAsSeen, refetch])
+    }, [markAsSeen, refetch, refreshRequests])
   );
 
   async function onRefresh() {
@@ -147,6 +152,7 @@ export default function FriendsScreen() {
     try {
       await Promise.all([
         refetch(),
+        refreshRequests(),
         new Promise<void>(resolve => setTimeout(resolve, 600)), // délai artificiel minimum
       ]);
     } finally {
@@ -169,6 +175,32 @@ export default function FriendsScreen() {
           <Text style={styles.searchIcon}>⌕</Text>
         </Pressable>
       </View>
+
+      {requests.length > 0 && (
+        <Pressable
+          style={({ pressed }) => [styles.requestsBanner, pressed && styles.rowPressed]}
+          onPress={() => router.push('/(tabs)/screens/amis/requests')}
+        >
+          <View style={styles.requestsAvatar}>
+            <Text style={styles.avatarText}>
+              {(requests[0].name ?? requests[0].handle ?? '?').charAt(0).toUpperCase()}
+            </Text>
+          </View>
+          <View style={styles.rowContent}>
+            <Text style={styles.requestsTitle}>Demandes d'abonnement</Text>
+            <Text style={styles.subtitle} numberOfLines={1}>
+              {requests[0].name ?? requests[0].handle}
+              {requests.length > 1
+                ? ` et ${requests.length - 1} autre${requests.length > 2 ? 's' : ''}`
+                : ''}
+            </Text>
+          </View>
+          <View style={styles.requestsCount}>
+              <Text style={styles.requestsCountText}>{requests.length}</Text>
+          </View>
+          <Text style={styles.requestsChevron}>›</Text>
+        </Pressable>
+      )}
     </View>
   )
 
@@ -385,6 +417,49 @@ function createStyles(colors: ThemeColors) {
   footer: {
     paddingVertical: 20,
     alignItems: 'center',
+  },
+  requestsBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 16,
+    backgroundColor: 'rgba(167,139,250,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(167,139,250,0.25)',
+    gap: 12,
+  },
+  requestsAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.divider,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  requestsTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  requestsCount: {
+    minWidth: 22,
+    height: 22,
+    paddingHorizontal: 6,
+    borderRadius: 11,
+    backgroundColor: colors.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  requestsCountText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.bg,
+  },
+  requestsChevron: {
+    fontSize: 22,
+    color: colors.textMuted,
   },
   customRefreshIndicator: {
     position: 'absolute',

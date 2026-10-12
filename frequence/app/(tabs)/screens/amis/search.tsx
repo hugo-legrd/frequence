@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { View, Text, TextInput, FlatList, Pressable, StyleSheet, ActivityIndicator, Animated } from 'react-native';
+import { View, Text, TextInput, FlatList, Pressable, StyleSheet, ActivityIndicator, Animated, Alert } from 'react-native';
 
 
 import { router, useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
 import { useUserSearch, UserSearchResult } from '../../../../lib/hooks/social/useUserSearch';
-import { useFollow } from '../../../../lib/hooks/social/useFollow';
+import { useFollow, initialFollowState, FOLLOW_LABELS, type FollowState } from '../../../../lib/hooks/social/useFollow';
 import { useSearchHistory } from '../../../../lib/hooks/social/useSearchHistory';
 
 import { useTheme } from '../../../../lib/theme/ThemeContext';
@@ -18,12 +18,12 @@ export default function SearchFriendsScreen() {
 
   const [query, setQuery] = useState('');
   const { results, loading, refetch } = useUserSearch(query);
-  const { follow, unfollow } = useFollow();
+  const { toggle } = useFollow();
   const { history, addToHistory, clearHistory } = useSearchHistory();
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
 
   // État local optimiste — évite d'attendre le round-trip Supabase pour mettre à jour le bouton
-  const [localFollowState, setLocalFollowState] = useState<Record<string, boolean>>({});
+  const [localFollowState, setLocalFollowState] = useState<Record<string, FollowState>>({});
 
   useFocusEffect(
     useCallback(() => {
@@ -32,8 +32,8 @@ export default function SearchFriendsScreen() {
     }, [])
   );
 
-  function isFollowing(user: UserSearchResult) {
-    return localFollowState[user.id] ?? user.is_following;
+  function followState(user: UserSearchResult): FollowState {
+    return localFollowState[user.id] ?? initialFollowState(user);
   }
 
   function handleUserPress(user: UserSearchResult) {
@@ -41,26 +41,43 @@ export default function SearchFriendsScreen() {
     router.push(`/(tabs)/screens/amis/${user.id}`);
   }
 
-  async function toggleFollow(user: UserSearchResult) {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const currentlyFollowing = isFollowing(user);
+  async function runToggle(user: UserSearchResult, current: FollowState) {
+    const isPrivate = user.profile_visibility === 'followers';
+    // Prédiction: abonné/demandé -> rien; rien -> demandé si privé, abonné sinon
+    const optimistic: FollowState = current !== 'none' ? 'none' : isPrivate ? 'requested' : 'following';
+
     setPendingIds(prev => new Set(prev).add(user.id));
-    setLocalFollowState(prev => ({ ...prev, [user.id]: !currentlyFollowing}));
+    setLocalFollowState(prev => ({ ...prev, [user.id]: optimistic}));
 
-    const success = currentlyFollowing
-      ? await unfollow(user.id)
-      : await follow(user.id);
-    
-      if (!success) {
-        // rollback si l'action a échoué
-        setLocalFollowState(prev => ({ ...prev, [user.id]: currentlyFollowing}));
-      }
+    const result = await toggle(user.id, current);
+    // Le serveur a le dernier mot; rollback si l'action a échoué
+    setLocalFollowState(prev => ({ ...prev, [user.id]: result ?? current }));
 
-      setPendingIds(prev => {
-        const next = new Set(prev);
-        next.delete(user.id);
-        return next;
-      })
+    setPendingIds(prev => {
+      const next = new Set(prev);
+      next.delete(user.id);
+      return next;
+    });
+  }
+
+  function toggleFollow(user: UserSearchResult) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const current = followState(user);
+
+    // Se désabonner d'un compte privé oblige à refaire une demande : on cofirme
+    if (current === 'following' && user.profile_visibility === 'followers') {
+      Alert.alert(
+        `Ne plus suivre ${user.display_name ?? 'cet utilisateur'} ?`,
+          'Ce compte est privé : il faudra refaire une demande pour voir ses concerts.',
+          [
+            { text: 'Annuler', style: 'cancel' },
+            { text: 'Ne plus suivre', style: 'destructive', onPress: () => runToggle(user, current) },
+          ],
+      );
+      return;
+    }
+
+    runToggle(user, current);
   }
 
   function UserRowSkeleton() {
@@ -120,7 +137,8 @@ export default function SearchFriendsScreen() {
         data={results}
         keyExtractor={item => item.id}
         renderItem={({ item }) => {
-          const following = isFollowing(item);
+          const state = followState(item);
+          const active = state !== 'none';
           return (
             <View style={styles.row}>
               <Pressable style={{ flex: 1}} onPress={() => handleUserPress(item)}>
@@ -128,12 +146,12 @@ export default function SearchFriendsScreen() {
                 {item.handle && <Text style={styles.handle}>@{item.handle}</Text>}
               </Pressable>
               <Pressable
-                style={[styles.btn, following && styles.btnActive]}
+                style={[styles.btn, active && styles.btnActive]}
                 onPress={() => toggleFollow(item)}
                 disabled={pendingIds.has(item.id)}  
               >
-                <Text style={[styles.btnText, following && styles.btnTextActive]}>
-                  {following ? 'Suivi': 'Suivre'}
+                <Text style={[styles.btnText, active && styles.btnTextActive]}>
+                  {FOLLOW_LABELS[state]}
                 </Text>
               </Pressable>
             </View>

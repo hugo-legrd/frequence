@@ -1,4 +1,4 @@
-import { View, Text, Pressable, ScrollView, ActivityIndicator, useWindowDimensions } from 'react-native';
+import { View, Text, Pressable, ScrollView, ActivityIndicator, useWindowDimensions, Alert } from 'react-native';
 import { useMemo, useState } from 'react';
 
 import { useLocalSearchParams, router } from 'expo-router';
@@ -25,7 +25,7 @@ export default function PublicProfileScreen() {
 
   const { userId, from } = useLocalSearchParams<{ userId: string, from?: string }>();
   const { profile, loading, setProfile } = usePublicProfile(userId);
-  const { follow, unfollow, loading: followLoading } = useFollow();
+  const { follow, unfollow, cancelRequest, loading: followLoading } = useFollow();
   const { mutuals, totalCount } = useMutualFriends(userId);
   const { events, loading: eventsLoading } = useUserEvents(userId, !!profile?.can_view);
 
@@ -40,25 +40,63 @@ export default function PublicProfileScreen() {
   async function toggleFollow() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (!profile) return;
-    const wasFollowing = profile.is_following;
-    const nowFollowing = !wasFollowing;
+    
+    const before = profile;
+    const isPrivate = profile.profile_visibility === 'followers';
 
-    setProfile({
-      ...profile,
-      is_following: nowFollowing,
-      followers_count: profile.followers_count + (wasFollowing ? - 1 : 1),
-      can_view: profile.profile_visibility === 'public' || nowFollowing,
-    });
-
-    const ok = wasFollowing ? await unfollow(profile.id) : await follow(profile.id);
-    if (!ok) {
-      setProfile({ 
-        ...profile, 
-        is_following: wasFollowing, 
-        followers_count: profile.followers_count,
-        can_view: profile.can_view,
-      });
+    // Demande en cours : on l'annule
+    if (profile.has_requested) {
+      setProfile({ ...profile, has_requested: false });
+      const ok = await cancelRequest(profile.id);
+      if (!ok) setProfile(before);
+      return;
     }
+
+    // Déjà abonné: on se désabonne (avec confirmation si le compte est privé)
+    if (profile.is_following) {
+      const doUnfollow = async () => {
+        setProfile({
+          ...before,
+          is_following: false,
+          followers_count: before.followers_count - 1,
+          can_view: !isPrivate,
+        });
+        const ok = await unfollow(before.id);
+        if (!ok) setProfile(before);
+      };
+
+      if (isPrivate) {
+        Alert.alert(
+          `Ne plus suivre ${profile.display_name} ?`,
+          'Ce compte est privé: il faudra refaire une demande pour voir ses concerts.',
+          [
+            { text: 'Annuler', style: 'cancel' },
+            { text: 'Ne plus suivre', style: 'destructive', onPress: doUnfollow },
+          ],
+        );
+      } else {
+        await doUnfollow();
+      }
+      return;
+    }
+
+    // Pas abonné: abonnement direct si public, demande si privé
+    setProfile(isPrivate
+      ? { ...profile, has_requested: true }
+      : { ...profile, is_following: true, followers_count: profile.followers_count + 1, can_view: true });
+    
+      const result = await follow(profile.id);
+      if (!result) {
+        setProfile(before);
+        return;
+      }
+
+      // Le serveur a le dernier mot (si le compte a changé de visibilité entre-temps)
+      if (result === 'following' && isPrivate) {
+        setProfile({ ...before, is_following: true, followers_count: before.followers_count + 1, can_view: true });
+      } else if (result === 'requested' && !isPrivate) {
+        setProfile({ ...before, has_requested: true });
+      }
   }
 
   function goBack() {
@@ -114,13 +152,13 @@ export default function PublicProfileScreen() {
 
               <View style={styles.identityActions}>
                 <Pressable
-                  style={[styles.followBtn, profile.is_following && styles.followBtnActive]}
+                  style={[styles.followBtn, (profile.is_following || profile.has_requested) && styles.followBtnActive]}
                   onPress={toggleFollow}
                   disabled={followLoading}
                   hitSlop={6}
                 >
-                  <Text style={[styles.followLabel, profile.is_following && styles.followLabelActive]}>
-                    {profile.is_following ? 'Suivi' : 'Suivre'}
+                  <Text style={[styles.followLabel, (profile.is_following || profile.has_requested) && styles.followLabelActive]}>
+                    {profile.is_following ? 'Suivi' : profile.has_requested ? 'Demandé' : 'Suivre'}
                   </Text>
                 </Pressable>
               </View>
@@ -174,7 +212,9 @@ export default function PublicProfileScreen() {
               <Feather name="lock" size={22} color={colors.textMuted} />
               <Text style={styles.lockedTitle}>Ce compte est privé</Text>
               <Text style={styles.lockedSub}>
-                Abonne-toi à {profile.display_name} pour voir les concerts qui l'intéressent. 
+                {profile.has_requested
+                  ? `Demande envoyée. Tu verras ses concerts dès que ${profile.display_name} l'aura acceptée.`
+                  : `Envoie une demande à ${profile.display_name} pour voir les concerts qui l'intéressent.`}
               </Text>
             </View>
           </FadeInSection>

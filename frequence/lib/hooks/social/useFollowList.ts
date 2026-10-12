@@ -7,6 +7,8 @@ export type FollowListUser = {
   handle: string | null;
   avatar_url: string | null;
   is_following: boolean;
+  has_requested: boolean;
+  profile_visibility: 'public' | 'followers';
 };
 
 export function useFollowList(targetUserId: string | undefined, kind: 'followers' | 'following') {
