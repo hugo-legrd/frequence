@@ -7,7 +7,7 @@ export function AuthHeader({ subtitle, compact = false }: { subtitle: string; co
   return (
     <Animated.View entering={FadeInDown.duration(420)} style={[s.top, compact && s.topCompact]}>
       <Text style={[s.logo, compact && s.logoCompact]} accessibilityRole='header'>
-        fréqunece<Text style={s.dot}>.</Text>
+        fréquence<Text style={s.dot}>.</Text>
       </Text>
       <Text style={s.subtitle}>{subtitle}</Text>
     </Animated.View>
