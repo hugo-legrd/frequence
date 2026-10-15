@@ -9,10 +9,12 @@ import {
   Image,
   Share,
 } from 'react-native';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
+import { captureRef } from 'react-native-view-shot';
 
 import { useLocalSearchParams, router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import * as Sharing from 'expo-sharing';
 
 import { supabase } from '../../../../lib/services/supabase';
 import type { EventDetail } from '../../../../lib/types/event';
@@ -21,8 +23,11 @@ import { ThemeColors } from '../../../../lib/theme/tokens';
 
 import VenueMiniMap from '../../../../lib/components/MiniMap';
 import FriendsGoingRow from '../../../../lib/components/FriendsGoingRow';
+import ShareStoryCard from '../../../../lib/components/ShareStoryCard';
 
 import { useEventInterest } from '../../../../lib/hooks/events/useEventInterest';
+
+import { formatPrice } from '../../../../lib/utils/formatPrice';
 
 const CATEGORY_LABELS: Record<string, string> = {
   gig: 'Concert',
@@ -51,6 +56,9 @@ export default function EventDetailScreen() {
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const { status: interest, loading: interestLoading, setInterest } = useEventInterest(id);
+  const storyRef = useRef<View>(null);
+  const [storyImageReady, setStoryImageReady] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,7 +67,7 @@ export default function EventDetailScreen() {
       const { data, error } = await supabase
         .from('events')
         .select(`
-          id, name, starts_at, image_url, ticket_link, source, category,
+          id, name, starts_at, image_url, ticket_link, source, category, sold_out, price_min, currency,
           venues (id, name, address, latitude, longitude),
           artists (id, name, image_url),
           event_genres ( genres ( name ) )
@@ -76,6 +84,7 @@ export default function EventDetailScreen() {
 
     setEvent(null);
     setLoading(true);
+    setStoryImageReady(false);
 
     fetchEvent();
 
@@ -96,6 +105,38 @@ export default function EventDetailScreen() {
   }
 
   async function handleShare() {
+    if (!event || sharing) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSharing(true);
+
+    try {
+      const canShareImage = await Sharing.isAvailableAsync();
+      // Si l'événement a une image, on attend qu'elle soit chargée dans la carte
+      const imageReady = !event.image_url || storyImageReady;
+
+      if (canShareImage && imageReady) {
+        const uri = await captureRef(storyRef, {
+          format: 'png',
+          quality: 1,
+          width: 1080,
+          height: 1920,
+        });
+        await Sharing.shareAsync(uri, {
+          mimeType: 'image/png',
+          UTI: 'public.png',
+          dialogTitle: 'Partager cet événement',
+        })
+      } else {
+        await shareAsText();
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSharing(false);
+    }
+  }
+
+  async function shareAsText() {
     if (!event) return;
     
     try {
@@ -147,6 +188,8 @@ export default function EventDetailScreen() {
     .map((eg) => eg.genres?.name)
     .filter((name): name is string => Boolean(name));
 
+  const priceLabel = formatPrice(event.price_min, event.currency);
+    
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -177,7 +220,14 @@ export default function EventDetailScreen() {
 
         {/* Contenu */}
         <View style={styles.content}>
-          <Text style={styles.eyebrow}>{category.toUpperCase()}</Text>
+          <View style={styles.eyebrowRow}>
+            <Text style={styles.eyebrow}>{category.toUpperCase()}</Text>
+            {event.sold_out && (
+              <View style={styles.soldOutBadge}>
+                <Text style={styles.soldOutText}>COMPLET</Text>
+              </View>
+            )}
+          </View>
           <Text style={styles.title}>{event.name}</Text>
 
           {/* Infos */}
@@ -198,6 +248,8 @@ export default function EventDetailScreen() {
               ))}
             </View>
           )}
+
+          {priceLabel && <Text style={styles.price}>{priceLabel}</Text>}
 
           {/* Actions */}
           <View style={styles.actionsRow}>
@@ -229,8 +281,8 @@ export default function EventDetailScreen() {
                 {interest === 'going' ? '✅ J\'y vais' : 'J\'y vais'}
               </Text>
             </Pressable>
-            <Pressable style={styles.shareBtn} onPress={handleShare}>
-              <Text style={styles.shareBtnText}>Partager</Text>
+            <Pressable style={styles.shareBtn} onPress={handleShare} disabled={sharing}>
+              <Text style={styles.shareBtnText}>{sharing ? 'Préparation...' : 'Partager'}</Text>
             </Pressable>
           </View>
 
@@ -278,13 +330,29 @@ export default function EventDetailScreen() {
       {event.ticket_link && (
         <View style={styles.bottomBar}>
           <Pressable
-            style={styles.btnTicket}
+            style={[styles.btnTicket, event.sold_out && styles.btnTicketSoldOut]}
             onPress={() => Linking.openURL(event.ticket_link!)}
           >
-            <Text style={styles.btnTicketText}>Acheter des billets →</Text>
+            <Text style={[styles.btnTicketText, event.sold_out && styles.btnTicketTextSoldOut]}>
+              {event.sold_out ? 'Complet · Voir sur DICE →' : 'Acheter des billets →'}
+            </Text>
           </Pressable>
         </View>
       )}
+
+      {/* Carte story, dessinée hors écran pour être capturée */}
+      <View style={styles.offscreen} pointerEvents="none">
+        <ShareStoryCard
+          ref={storyRef}
+          title={event.name}
+          category={category}
+          dateLabel={event.starts_at ? formatDateShort(event.starts_at) : ''}
+          venueName={event.venues?.name ?? null}
+          genres={genreNames}
+          imageUrl={event.image_url}
+          onImageLoaded={() => setStoryImageReady(true)}
+        />
+      </View>
     </View>
   );
 }
@@ -349,6 +417,11 @@ function createStyles(colors: ThemeColors) {
     color: colors.accent,
     textTransform: 'uppercase',
     letterSpacing: 1,
+  },
+  eyebrowRow: {
+    flexDirection: 'row',
+    alignItems: 'center', 
+    gap: 8,
     marginBottom: 8,
   },
   title: {
@@ -470,6 +543,38 @@ function createStyles(colors: ThemeColors) {
     fontSize: 14,
     fontWeight: '500',
     color: colors.bg,
+  },
+  soldOutBadge: { 
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 100,
+    backgroundColor: colors.text,
+  },
+  soldOutText: {
+    fontSize: 10,
+    fontWeight: '700', 
+    letterSpacing: 1,
+    color: colors.bg
+  },
+  price: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginTop: -14,
+    marginBottom: 20
+  },
+  btnTicketSoldOut: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.divider
+  },
+  btnTicketTextSoldOut: {
+    color: colors.textMuted,
+  },
+  offscreen: {
+    position: 'absolute',
+    top: 0,
+    left: -10000,
   },
 })
 };
