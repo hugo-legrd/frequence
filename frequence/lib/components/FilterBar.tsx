@@ -11,7 +11,7 @@ import { Feather } from '@expo/vector-icons';
 
 const DATE_FILTERS = [
   { key: 'all', label: 'Tous' },
-  { key: 'today', label: "Aujourd'hui" },
+  { key: 'today', label: "Ce soir" },
   { key: 'weekend', label: 'Ce week-end' },
   { key: 'week', label: 'Cette semaine' },
   { key: 'month', label: 'Ce mois' },

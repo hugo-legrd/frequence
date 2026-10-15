@@ -22,30 +22,37 @@ export type Event = {
     image_url: string | null;
   } | null;
   genres: string[];
+  sold_out: boolean;
+  price_min: number | null;
+  currency: string | null;
 };
 
 function getDateRange(dateFilter: string): { from: string; to: string} | null {
   const now = new Date();
 
   if (dateFilter === 'today') {
-    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
-    return { 
-      from: `${todayStr}T00:00:00`, 
-      to: `${todayStr}T23:59:59`,
-   };
+    // "Ce soir " = de 6h aujourd'hui à 6h demain
+    // A 2h du matin on est encore dans la soirée d'hier
+    const start = new Date(now);
+    if (now.getHours() < 6) start.setDate(start.getDate() - 1);
+    start.setHours(6, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 1);
+    return { from: start.toISOString(), to: end.toISOString() };
   }
 
   if (dateFilter === 'weekend') {
-    const day = now.getDay();
-    const diffToSat = (6 - day + 7) % 7;
-    const sat = new Date(now);
-    sat.setDate(now.getDate() + diffToSat);
-    sat.setHours(0, 0, 0, 0);
-    const sun = new Date(sat);
-    sun.setDate(sat.getDate() + 1);
-    sun.setHours(23, 59, 59, 999);
-    return { from: sat.toISOString(), to: sun.toISOString() };
+    // Du vendredi 18h au lundi 6h. Si on est déjà vendredi, samedi ou dimanche :
+    // le week end en cours, sinon le prochain
+    const daysSinceFriday = (now.getDay() + 2) % 7; // ven = 0, sam = 1, dim = 2 ... jeu = 6
+    const friday = new Date(now);
+    friday.setDate(now.getDate() + (daysSinceFriday <= 2 ? -daysSinceFriday : 7 - daysSinceFriday));
+    friday.setHours(18, 0, 0, 0);
+    const monday = new Date(friday);
+    monday.setDate(friday.getDate() + 3);
+    monday.setHours(6, 0, 0, 0);
+    const from = friday > now ? friday : now; // pas d'événements déjà passés
+    return { from: from.toISOString(), to: monday.toISOString() };
   }
 
   if (dateFilter === 'week') {
@@ -116,7 +123,7 @@ export function useEvents(filters?: Filters) {
     let query = supabase
       .from('events')
       .select(`
-          id, name, starts_at, image_url, ticket_link, source,
+          id, name, starts_at, image_url, ticket_link, source, sold_out, price_min, currency,
           venues (id, name, address, latitude, longitude),
           artists (id, name, image_url),
           event_genres ( genres ( name ) )

@@ -1,6 +1,6 @@
 import { View, Text, FlatList, ActivityIndicator, StyleSheet, Image, Pressable } from 'react-native';
-import { router } from 'expo-router';
-import { useState, useMemo } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useState, useMemo, useEffect } from 'react';
 
 import { useEvents } from '../../../lib/hooks/events/useEvents';
 import { useEventCounts } from '../../../lib/hooks/events/useEventCounts';
@@ -11,13 +11,21 @@ import InterestButton from '../../../lib/components/InterestButton';
 import { useTheme } from '../../../lib/theme/ThemeContext';
 import type { ThemeColors } from '../../../lib/theme/tokens';
 
+import { formatPrice } from '../../../lib/utils/formatPrice';
+
 export default function ConcertsScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const [filters, setFilters] = useState<Filters>({ date: 'all', genres: []});
+  const { date } = useLocalSearchParams<{ date?: string }>();
+  const [filters, setFilters] = useState<Filters>({ date: date ?? 'all', genres: []});
+
   const { events, loading, loadingMore, error, hasMore, loadMore } = useEvents(filters);
   const counts = useEventCounts(useMemo(() => events.map(e => e.id), [events]));
+
+  useEffect(() => {
+    if (date) setFilters(f => ({ ...f, date }));
+  }, [date]);
 
   if (error) {
     return (
@@ -50,15 +58,22 @@ export default function ConcertsScreen() {
               style={styles.card}
               onPress={() => router.push(`/(tabs)/screens/event/${item.id}`)}
             >
-              {item.image_url ? (
-                <Image
-                  source={{ uri: item.image_url}}
-                  style={styles.image}
-                  resizeMode="cover"
-                />
-              ) : (
-              <View style={styles.imagePlaceholder} />
-            )}
+              <View>
+                {item.image_url ? (
+                  <Image
+                    source={{ uri: item.image_url}}
+                    style={styles.image}
+                    resizeMode="cover"
+                  />
+                ) : (
+                <View style={styles.imagePlaceholder} />
+                )}
+                {item.sold_out && (
+                  <View style={styles.soldOutBadge}>
+                    <Text style={styles.soldOutText}>COMPLET</Text>
+                  </View> 
+                )}
+              </View>
             <View style={styles.cardContent}>
               <Text style={styles.eventName}>{item.name}</Text>
               {item.artist && (
@@ -83,6 +98,9 @@ export default function ConcertsScreen() {
                       minute: '2-digit',
                   })}
                 </Text>
+              )}
+              {formatPrice(item.price_min, item.currency) && (
+                <Text style={styles.price}>{formatPrice(item.price_min, item.currency)}</Text>
               )}
               {(() => {
                 const c = counts[item.id];
@@ -229,5 +247,8 @@ function createStyles(colors: ThemeColors) {
     fontWeight: '500',
     marginTop: 3
   },
+  soldOutBadge: { position: 'absolute', top: 10, left: 10, paddingVertical: 3, paddingHorizontal: 9, borderRadius: 100, backgroundColor: colors.bg },
+  soldOutText: { fontSize: 10, fontWeight: '700', letterSpacing: 1, color: colors.text },
+  price: { fontSize: 12, fontWeight: '600', color: colors.text, marginTop: 2},
 })
 };

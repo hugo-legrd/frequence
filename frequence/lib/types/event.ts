@@ -19,6 +19,9 @@ export type EventDetail = {
   } | null;
   category: string | null;
   event_genres: { genres: { name: string } | null }[] | null;
+  sold_out: boolean;
+  price_min: number | null;
+  currency: string | null;
 };
 
 export type InterestStatus = 'interested' | 'going' | null;

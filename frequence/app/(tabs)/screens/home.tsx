@@ -1,15 +1,22 @@
-import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, useWindowDimensions } from 'react-native';
+
 import { useState, useMemo } from 'react';
+
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../../../lib/services/supabase';
+
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+
 import { useRandomEvent } from '../../../lib/hooks/events/useRandomEvent';
 import { useHomeFriendsPick } from '../../../lib/hooks/social/useHomeFriendsPick';
 import { useLatestEvents } from '../../../lib/hooks/events/useLatestEvents';
+import { useEvents } from '../../../lib/hooks/events/useEvents';
+
 import RemoteImage from '../../../lib/components/RemoteImage';
+
 import { useTheme } from '../../../lib/theme/ThemeContext';
 import type { ThemeColors } from '../../../lib/theme/tokens';
+
 import { useMyProfile } from '../../../lib/hooks/profile/useMyProfile';
 
 
@@ -57,7 +64,21 @@ function formatHeroMeta(venueName: string | null, startsAt: string | null, genre
   return parts.join(' · ');
 }
 
-const FILTERS = ['Près de moi', 'Ce soir', 'Gratuit'] as const;
+const WHEN_FILTERS = [
+  { key: 'today', label: 'Ce soir', title: 'CE SOIR', empty: "Rien de prévu ce soir pour l'instant." },
+  { key: 'weekend', label: 'Ce week-end', title: 'CE WEEK-END', empty: "Rien de prévu ce week-end pour l'instant." },
+] as const;
+
+type WhenKey = typeof WHEN_FILTERS[number]['key'];
+
+function formatWhenMeta(startsAt: string | null, venueName: string | undefined, when: WhenKey): string {
+  if (!startsAt) return venueName ?? '';
+  const d = new Date(startsAt);
+  const time = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  const day = d.toLocaleDateString('fr-FR', { weekday: 'short' });
+  const label = when === 'weekend' ? `${day.charAt(0).toUpperCase()}${day.slice(1)} ${time}` : time;
+  return venueName ? `${label} · ${venueName}` : label;
+}
 
 const styles_sectionTitleBase = {
   fontSize: 12,
@@ -72,22 +93,18 @@ export default function HomeScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set(['Près de moi']));
+  const [when, setWhen] = useState<WhenKey>('today');
+  const { events: whenEvents, loading: whenLoading } = useEvents({ date: when, genres: [] });
+  const activeWhen = WHEN_FILTERS.find(f => f.key === when)!;
   const { event: randomEvent, loading: eventLoading } = useRandomEvent();
   const { pick: friendsPick, loading: friendsLoading } = useHomeFriendsPick();
   const { events: latestsEvents, loading: latestLoading } = useLatestEvents();
   const { profile } = useMyProfile();
   const userInitial = profile?.display_name?.charAt(0).toUpperCase() ?? '';
   
-  function toggleFilter(filter: string) {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setActiveFilters(prev => {
-      const next = new Set(prev);
-      if (next.has(filter)) next.delete(filter);
-      else next.add(filter);
-      return next;
-    })
-  }
+  const { width: screenWidth } = useWindowDimensions();
+  const heroWidth = screenWidth - 40;
+
 
   return (
     <View style={styles.container}>
@@ -117,16 +134,19 @@ export default function HomeScreen() {
 
         {/* Filters */}
         <View style={styles.filters}>
-          {FILTERS.map(filter => {
-            const active = activeFilters.has(filter);
+          {WHEN_FILTERS.map(f => {
+            const active = when === f.key;
             return (
               <Pressable
-                key={filter}
+                key={f.key}
                 style={[styles.filter, active && styles.filterActive]}
-                onPress={() => toggleFilter(filter)}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setWhen(f.key)
+                }}
               >
                 <Text style={[styles.filterText, active && styles.filterTextActive]}>
-                  {filter}
+                  {f.label}
                 </Text>
               </Pressable>
             );
@@ -134,6 +154,50 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.divider} />
+
+        {/* Ce soir / Ce week end */}
+        <View style={styles.whenHeader}>
+          <SectionTitle title={activeWhen.title} color={colors.textMuted} />
+          <Pressable
+            hitSlop={8}
+            onPress={() => router.push({ pathname: '/(tabs)/screens/concerts', params: { date: when } })}
+          >
+            <Text style={styles.seeAll}>Tout voir</Text>
+          </Pressable>
+        </View>
+
+        {whenLoading ? (
+          <View style={styles.sectionLoading}>
+            <ActivityIndicator color={colors.accent}/>
+          </View>
+          ) : whenEvents.length === 0 ? (
+            <Text style={styles.whenEmpty}>{activeWhen.empty}</Text>
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.whenList}>
+              {whenEvents.map(item => (
+                <Pressable
+                  key={item.id}
+                  style={styles.whenCard}
+                  onPress={() => router.push(`/(tabs)/screens/event/${item.id}`)}
+                >
+                  {item.image_url ? (
+                    <RemoteImage key={item.image_url} uri={item.image_url} size={0} borderRadius={14} style={styles.whenImage} />
+                  ) : (
+                    <View style={styles.whenImage} />
+                  )}
+                  {item.sold_out && (
+                    <View style={styles.soldOutBadge}>
+                      <Text style={styles.soldOutText}>COMPLET</Text>
+                    </View>
+                  )}
+                  <Text style={styles.whenName} numberOfLines={1}>{item.artist?.name ?? item.name}</Text>
+                  <Text style={styles.whenMeta} numberOfLines={1}>
+                    {formatWhenMeta(item.starts_at, item.venue?.name, when)}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          )}
 
         {/* Recommended - hero treatment */}
         {eventLoading && (
@@ -144,7 +208,7 @@ export default function HomeScreen() {
 
         {!eventLoading && randomEvent && (
           <Pressable
-            style={styles.heroCard}
+            style={[styles.heroCard, { width: heroWidth, height: heroWidth * 5 / 4}]}
             onPress={() => router.push(`/(tabs)/screens/event/${randomEvent.event_id}`)}
           >
             {randomEvent.image_url ? (
@@ -327,10 +391,10 @@ function createStyles(colors: ThemeColors) {
     },
     heroCard: {
       marginHorizontal: 20,
+      marginTop: 24,
       marginBottom: 8,
       borderRadius: 22,
       overflow: 'hidden',
-      aspectRatio: 4 / 5,
       backgroundColor: colors.surface,
     },
     heroImage: {
@@ -338,11 +402,6 @@ function createStyles(colors: ThemeColors) {
       height: '100%',
       justifyContent: 'center',
       alignItems: 'center',
-    },
-    placeHolderText: {
-      fontSize: 14,
-      fontStyle: 'italic',
-      color: colors.textMuted,
     },
     heroOverlay: {
       position: 'absolute',
@@ -444,6 +503,16 @@ function createStyles(colors: ThemeColors) {
       borderRadius: 16,
       width: '100%', 
       height: '100%'
-    }
+    },
+    whenHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    seeAll: { fontSize: 12, fontWeight: '600', color: colors.accent, paddingHorizontal: 20, marginTop: 20, marginBottom: 9 },
+    whenList: { paddingHorizontal: 20, gap: 10 },
+    whenCard: { width: 120 },
+    whenImage: { width: 120, height: 120, borderRadius: 12, backgroundColor: colors.surface, marginBottom: 6 },
+    whenName: { fontSize: 13, fontWeight: '600', color: colors.text} ,
+    whenMeta: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
+    whenEmpty: { fontSize: 13, color: colors.textMuted, paddingHorizontal: 20 },
+    soldOutBadge: { position: 'absolute', top: 8, left: 8, paddingVertical: 3, paddingHorizontal: 9, borderRadius: 100, backgroundColor: colors.bg },
+    soldOutText: { fontSize: 10, fontWeight: '700', letterSpacing: 1, color: colors.text },
   })
 } 
