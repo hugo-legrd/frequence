@@ -203,6 +203,7 @@ async function upsertEvent(
       image_url: extractImageUrl(event),
       ticket_link: event.url,
       source: 'dice',
+      sold_out: event.sold_out ?? false,
     }, { onConflict: 'name,starts_at'});
 
   if (error) {
@@ -230,12 +231,14 @@ async function fetchDiceEvents(): Promise<DiceEvent[]> {
         sort: '',
         page: 1,
         pageSize: 50,
+        limit: 150,
       }),
     }
   );
 
   if (!res.ok) {
-    throw new Error(`Apify API error: ${res.status} ${res.statusText}`);
+    const body = await res.text();
+    throw new Error(`Apify API error: ${res.status} ${res.statusText} — ${body.slice(0, 500)}`);
   }
 
   const rawText = await res.text();
