@@ -98,9 +98,12 @@ export type Database = {
           artist_id: string | null
           category: string | null
           created_at: string
+          currency: string | null
           id: string
           image_url: string | null
           name: string | null
+          price_min: number | null
+          sold_out: boolean
           source: string | null
           starts_at: string | null
           style: string[] | null
@@ -111,9 +114,12 @@ export type Database = {
           artist_id?: string | null
           category?: string | null
           created_at?: string
+          currency?: string | null
           id?: string
           image_url?: string | null
           name?: string | null
+          price_min?: number | null
+          sold_out?: boolean
           source?: string | null
           starts_at?: string | null
           style?: string[] | null
@@ -124,9 +130,12 @@ export type Database = {
           artist_id?: string | null
           category?: string | null
           created_at?: string
+          currency?: string | null
           id?: string
           image_url?: string | null
           name?: string | null
+          price_min?: number | null
+          sold_out?: boolean
           source?: string | null
           starts_at?: string | null
           style?: string[] | null
@@ -354,6 +363,32 @@ export type Database = {
           profile_visibility?: string
         }
         Relationships: []
+      }
+      venue_follows: {
+        Row: {
+          created_at: string
+          user_id: string
+          venue_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id: string
+          venue_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venue_follows_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       venues: {
         Row: {
