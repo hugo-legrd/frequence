@@ -21,6 +21,7 @@ import { useShareProfile } from '../../../../lib/hooks/social/useShareProfile';
 import { useMyArtists } from '../../../../lib/hooks/profile/useMyArtists';
 import { useMyProfile } from '../../../../lib/hooks/profile/useMyProfile';
 import { useMyEvents } from '../../../../lib/hooks/events/useMyEvents';
+import { useMyVenues } from '../../../../lib/hooks/venues/useMyVenues';
 
 
 type ArtistWithGenre = ReturnType<typeof useMyArtists>['artists'][number] & {
@@ -92,6 +93,7 @@ export default function ProfileScreen() {
   const { profile, loading: profileLoading, refetch: refetchProfile } = useMyProfile();
   const { events, loading: eventsLoading, refetch: refetchEvents } = useMyEvents();
   const { artists } = useMyArtists();
+  const { venues: myVenues, refetch: refetchVenues } = useMyVenues();
   const [refreshing, setRefreshing] = useState(false);
   const { shotRef, share } = useShareProfile();
 
@@ -101,6 +103,7 @@ export default function ProfileScreen() {
     useCallback(() => {
       refetchProfile();
       refetchEvents();
+      refetchVenues();
     }, [])
   );
 
@@ -111,6 +114,7 @@ export default function ProfileScreen() {
       await Promise.all([
         refetchProfile(),
         refetchEvents(),
+        refetchVenues(),
         new Promise(resolve => setTimeout(resolve, 600)),
       ]);
     } finally {
@@ -273,6 +277,43 @@ export default function ProfileScreen() {
                 </Pressable>
               </ScrollView>
           </View>
+        </FadeInSection>
+
+        {/* Salles suivies */}
+        <FadeInSection delay={170}>
+            <View style={styles.section}>
+                  <SectionHeader label={`SALLES SUIVIES · ${myVenues.length}`} />
+                  {myVenues.length === 0 ? (
+                    <Pressable onPress={() => router.push('/(tabs)/screens/explorer')} hitSlop={6}>
+                      <Text style={styles.genresEmptyText}>
+                        Suis tes salles préférées depuis la carte Explorer.
+                      </Text>   
+                    </Pressable>
+                  ) : (
+                    myVenues.map(v => (
+                      <Pressable
+                        key={v.venue_id}
+                        style={styles.eventRow}
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          router.push({ pathname: '/(tabs)/screens/explorer', params: { venueId: v.venue_id } });
+                        }}
+                      >
+                        <View style={[styles.bubbleImage, { width: 48, height: 48, borderRadius: 8, backgroundColor: colors.surface }]}>
+                          <Text style={{ fontSize: 18, fontWeight: '600', color: colors.accent }}>
+                            {v.name.charAt(0).toUpperCase()}
+                          </Text>
+                        </View>
+                        <View style={styles.eventContent}>
+                          <Text style={styles.eventArtist} numberOfLines={1}>{v.name}</Text>
+                          {v.address && (
+                            <Text style={styles.eventMeta} numberOfLines={1}>{v.address}</Text>
+                          )}
+                        </View>
+                      </Pressable>
+                    ))
+                  )}
+            </View>
         </FadeInSection>
 
         {eventsLoading && (

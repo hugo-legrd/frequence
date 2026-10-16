@@ -13,6 +13,7 @@ import MapView, { Marker, PROVIDER_DEFAULT, Callout } from 'react-native-maps';
 import Animated, { useSharedValue, useAnimatedStyle, interpolate, Extrapolation } from 'react-native-reanimated';
 
 import * as Location from 'expo-location';
+import { useLocalSearchParams } from 'expo-router';
 
 import ExplorerBottomSheet from '../../../lib/components/ExplorerBottomSheet'
 ;
@@ -26,25 +27,33 @@ import type { Venue, Store } from '../../../lib/types/explorer';
 export default function ExplorerScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+
   // Position GPS de l'utilisateur
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+
   // true si l'utilisateur a refusé la permission de localisation
   const [permissionDenied, setPermissionDenied] = useState(false);
+
   // true pendant la récupération de la position GPS
   const [loading, setLoading] = useState(true);
+
   // Référence vers la carte pour pouvoir la déplacer programmatiquement
   const mapRef = useRef<MapView>(null);
+
   // List des venues récupérées depuis Supabase
   const [venues, setVenues] = useState<Venue[]>([]);
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
+
   const [stores, setStores] = useState<Store[]>([]);
   const [selectedStore, setSelectedStore] = useState<Store | null>(null);
+
   const [sheetIndex, setSheetIndex] = useState(0);
 
   const [activeVenueIds, setActiveVenueIds] = useState<Set<string>>(new Set());
 
   const [showStores, setShowStores] = useState(true);
   const [showVenues, setShowVenues] = useState(true);
+  const { venueId } = useLocalSearchParams<{ venueId? : string }>();
 
   const { recommendations, loading: recLoading } = useRecommendations();
 
@@ -52,16 +61,32 @@ export default function ExplorerScreen() {
   const recenterBtnStyle = useAnimatedStyle(() => ({
     bottom: `${interpolate(animatedIndex.value, [0, 1], [31, 56], Extrapolation.CLAMP)}%`,
   }));
+
   
   useEffect(() => {
     requestLocation();
-  }, [location]);
+  }, []);
 
   useEffect(() => {
     if (!location) return;
     fetchVenues();
     loadStores();
   }, [location]);
+
+  useEffect(() => {
+    if (!venueId || venues.length === 0) return;
+    const venue = venues.find(v => v.id === venueId);
+    if (!venue) return;
+
+    setSelectedStore(null);
+    setSelectedVenue(venue);
+    mapRef.current?.animateToRegion({
+      latitude: venue.latitude,
+      longitude: venue.longitude,
+      latitudeDelta: 0.01,
+      longitudeDelta: 0.01,
+    }, 500);
+  }, [venueId, venues]);
 
   // Demande la permission GPS et récupère la position actuelle
   async function requestLocation() {

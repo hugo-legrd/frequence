@@ -9,6 +9,8 @@ import { router } from 'expo-router';
 import { useRecommendations, ArtistRecommendation } from "../hooks/events/useRecommendations";
 import { useVenueEvents } from "../hooks/events/useVenueEvents";
 
+import { useVenueFollow } from "../hooks/venues/useVenueFollow";
+
 import SearchBar from "./SearchBar";
 import ArtistRecommendationCard from "./ArtistRecommendationCard";
 import RemoteImage from "./RemoteImage";
@@ -85,6 +87,26 @@ function VenueEventsList({ venueId }: { venueId: string }) {
         </Pressable>
       ))}
     </>
+  );
+}
+
+function VenueFollowButton({ venueId }: { venueId: string }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { following, loading, toggle } = useVenueFollow(venueId);
+
+  return (
+    <Pressable
+      style={[styles.btnFollow, following && styles.btnFollowActive]}
+      onPress={toggle}
+      disabled={loading}
+    >
+      {loading ? (
+        <ActivityIndicator size="small" color={colors.accent} />
+      ) : (
+        <Text style={styles.btnFollowText}>{following ? '✓ Suivie' : 'Suivre'}</Text>
+      )}
+    </Pressable>
   );
 }
 
@@ -215,6 +237,7 @@ export default function ExplorerBottomSheet({ selectedVenue, selectedStore, onCl
           )}
 
           <View style={styles.btnRow}>
+            <VenueFollowButton venueId={selectedVenue.id} />
             <Pressable style={styles.btnSecondary} onPress={openMaps}>
               <Text style={styles.btnSecondaryText}>Itinéraire</Text>
             </Pressable>
@@ -425,8 +448,10 @@ function createStyles(colors: ThemeColors) {
   btnRow: {
     marginTop: 16,
     gap: 8,
+    flexDirection: 'row',
   },
   btnSecondary: {
+    flex: 1,
     padding: 12,
     borderRadius: 10,
     borderWidth: 1,
@@ -437,6 +462,23 @@ function createStyles(colors: ThemeColors) {
   btnSecondaryText: {
     fontSize: 13,
     color: colors.text,
+  },
+  btnFollow: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  btnFollowActive: {
+    backgroundColor: colors.accentSoftBg,
+  },
+  btnFollowText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.accent,
   },
   searchBar: {
     backgroundColor: colors.bg,
