@@ -178,7 +178,7 @@ export default function HomeScreen() {
                 <Pressable
                   key={item.id}
                   style={styles.whenCard}
-                  onPress={() => router.push(`/(tabs)/screens/event/${item.id}`)}
+                  onPress={() => router.push(`/event/${item.id}`)}
                 >
                   {item.image_url ? (
                     <RemoteImage key={item.image_url} uri={item.image_url} size={0} borderRadius={14} style={styles.whenImage} />
@@ -209,7 +209,7 @@ export default function HomeScreen() {
         {!eventLoading && randomEvent && (
           <Pressable
             style={[styles.heroCard, { width: heroWidth, height: heroWidth * 5 / 4}]}
-            onPress={() => router.push(`/(tabs)/screens/event/${randomEvent.event_id}`)}
+            onPress={() => router.push(`/event/${randomEvent.event_id}`)}
           >
             {randomEvent.image_url ? (
               <RemoteImage
@@ -242,7 +242,7 @@ export default function HomeScreen() {
             <SectionTitle title="AMIS INTÉRESSÉS" color={colors.textMuted} />
             <Pressable
               style={styles.friendCard}
-              onPress={() => router.push(`/(tabs)/screens/event/${friendsPick.event_id}`)}
+              onPress={() => router.push(`/event/${friendsPick.event_id}`)}
             >
               <View style={styles.avatarGroup}>
                 <View style={[styles.avatar, styles.avatarOne]}>
@@ -281,7 +281,7 @@ export default function HomeScreen() {
                 <Pressable
                   key={item.id}
                   style={styles.smallCard}
-                  onPress={() => router.push(`/(tabs)/screens/event/${item.id}`)}
+                  onPress={() => router.push(`/event/${item.id}`)}
                 >
                   {item.image_url ? (
                     <RemoteImage

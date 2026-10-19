@@ -75,7 +75,7 @@ export default function SearchBar({ onFocus, onBlur }: Props) {
 
     switch (result.type) {
       case 'event':
-        router.push(`/(tabs)/screens/event/${result.id}`);
+        router.push(`/event/${result.id}`);
         break;
       case 'venue':
       case 'store':

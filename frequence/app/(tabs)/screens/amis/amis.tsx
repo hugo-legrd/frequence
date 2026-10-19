@@ -64,7 +64,7 @@ function goToProfile(userId: string | null) {
 }
 
 function goToEvent(eventId: string | null) {
-  if (eventId) router.push(`/(tabs)/screens/event/${eventId}`);
+  if (eventId) router.push(`/event/${eventId}`);
 }
 
 function ActivityRow({ item, currentUserId }: { item: FriendActivityRow; currentUserId: string | null }) {

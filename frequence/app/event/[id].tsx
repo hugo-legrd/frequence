@@ -8,29 +8,31 @@ import {
   Linking,
   Image,
   Share,
+  Modal,
 } from 'react-native';
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { captureRef } from 'react-native-view-shot';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useLocalSearchParams, router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import * as Sharing from 'expo-sharing';
 import { Feather } from '@expo/vector-icons';
 
-import { supabase } from '../../../../lib/services/supabase';
-import type { EventDetail } from '../../../../lib/types/event';
-import { useTheme } from '../../../../lib/theme/ThemeContext';
-import { ThemeColors } from '../../../../lib/theme/tokens';
+import { supabase } from '../../lib/services/supabase';
+import type { EventDetail } from '../../lib/types/event';
+import { useTheme } from '../../lib/theme/ThemeContext';
+import { ThemeColors } from '../../lib/theme/tokens';
 
-import VenueMiniMap from '../../../../lib/components/MiniMap';
-import FriendsGoingRow from '../../../../lib/components/FriendsGoingRow';
-import ShareStoryCard from '../../../../lib/components/ShareStoryCard';
+import VenueMiniMap from '../../lib/components/MiniMap';
+import FriendsGoingRow from '../../lib/components/FriendsGoingRow';
+import ShareStoryCard from '../../lib/components/ShareStoryCard';
 
-import { useEventInterest } from '../../../../lib/hooks/events/useEventInterest';
+import { useEventInterest } from '../../lib/hooks/events/useEventInterest';
 
-import { formatPrice } from '../../../../lib/utils/formatPrice';
-import { addEventToCalendar } from '../../../../lib/utils/addToCalendar';
-import { isExpoGo } from '../../../../lib/utils/runtime';
+import { formatPrice } from '../../lib/utils/formatPrice';
+import { addEventToCalendar } from '../../lib/utils/addToCalendar';
+import { isExpoGo } from '../../lib/utils/runtime';
 
 const CATEGORY_LABELS: Record<string, string> = {
   gig: 'Concert',
@@ -63,6 +65,9 @@ export default function EventDetailScreen() {
   const [storyImageReady, setStoryImageReady] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [addingToCalendar, setAddingToCalendar] = useState(false);
+
+  const [imageOpen, setImageOpen] = useState(false);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     let cancelled = false;
@@ -224,7 +229,10 @@ export default function EventDetailScreen() {
         <Pressable 
           style={styles.backBtn}
           hitSlop={8}
-          onPress={() => router.push('/(tabs)/screens/concerts')}  
+          onPress={() => {
+            if (router.canGoBack()) router.back();
+            else router.replace('/(tabs)/screens/home')
+          }}
         >
           <Text style={styles.backArrow}>←</Text>
           <Text style={styles.backLabel}>Retour</Text>
@@ -235,11 +243,16 @@ export default function EventDetailScreen() {
         {/*Hero*/}
         <View style={styles.hero}>
           {event.image_url ? (
-            <Image 
-              source={{ uri: event.image_url}}
-              style={styles.heroImage}
-              resizeMode="cover"
-            />
+            <Pressable onPress={() => setImageOpen(true)} style={styles.heroImage}>
+              <Image 
+                source={{ uri: event.image_url}}
+                style={styles.heroImage}
+                resizeMode="cover"
+              />
+              <View style={styles.heroExpand}>
+                <Feather name="maximize-2" size={14} color="#fff" />
+              </View>
+            </Pressable>
           ) : (
             <View style={styles.heroPlaceholder} />
           )}
@@ -388,6 +401,33 @@ export default function EventDetailScreen() {
           </Pressable>
         </View>
       )}
+
+      {/* Visionneuse plein écran de l'image */}
+      {event.image_url && (
+        <Modal
+          visible={imageOpen}
+          transparent
+          animationType="fade"
+          statusBarTranslucent
+          onRequestClose={() => setImageOpen(false)}
+        >
+          <Pressable style={styles.viewerBackdrop} onPress={() => setImageOpen(false)}>
+            <Image 
+              source={{ uri: event.image_url }}
+              style={styles.viewerImage}
+              resizeMode="contain"
+            />
+          </Pressable>
+          <Pressable
+            style={[styles.viewerClose, { top: insets.top + 12 }]}
+            onPress={() => setImageOpen(false)}
+            hitSlop={10}
+          >
+            <Feather name="x" size={20} color="#fff" />
+          </Pressable>
+        </Modal>
+      )}
+
 
       {/* Carte story, dessinée hors écran pour être capturée */}
       <View style={styles.offscreen} pointerEvents="none">
@@ -639,5 +679,35 @@ function createStyles(colors: ThemeColors) {
     fontWeight: '600',
     color: colors.text,
   },
+  heroExpand: {
+    position: 'absolute',
+    right: 12,
+    bottom: 12,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  viewerBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  viewerImage: {
+    width: '100%',
+    height: '100%',
+  },
+  viewerClose: {
+    position: 'absolute',
+    right: 16,
+    width: 36,
+    height: 36,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  }
 })
 };

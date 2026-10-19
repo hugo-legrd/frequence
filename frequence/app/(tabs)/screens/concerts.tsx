@@ -56,7 +56,7 @@ export default function ConcertsScreen() {
           <View style={styles.card}>
             <Pressable
               style={styles.card}
-              onPress={() => router.push(`/(tabs)/screens/event/${item.id}`)}
+              onPress={() => router.push(`/event/${item.id}`)}
             >
               <View>
                 {item.image_url ? (

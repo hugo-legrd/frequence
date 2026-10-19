@@ -54,7 +54,7 @@ export default function MyConcertsScreen() {
           renderItem={({ item }) => (
             <Pressable
               style={styles.row}
-              onPress={() => router.push(`/(tabs)/screens/event/${item.event_id}`)}
+              onPress={() => router.push(`/event/${item.event_id}`)}
             >
               <RemoteImage uri={item.image_url} size={48} borderRadius={8} />
               <View style={{ flex: 1 }}>

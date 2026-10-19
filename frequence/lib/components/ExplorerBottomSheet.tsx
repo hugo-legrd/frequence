@@ -75,7 +75,7 @@ function VenueEventsList({ venueId }: { venueId: string }) {
         <Pressable
           key={event.id}
           style={styles.venueEventRow}
-          onPress={() => router.push(`/(tabs)/screens/event/${event.id}`)}
+          onPress={() => router.push(`/event/${event.id}`)}
         >
           <RemoteImage uri={event.image_url} size={44} borderRadius={8} />
           <View style={{ flex: 1}}>

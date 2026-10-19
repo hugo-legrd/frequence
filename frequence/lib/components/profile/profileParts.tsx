@@ -137,7 +137,7 @@ export function EventListRow({ item, badge }: { item: MyEventRow; badge?: string
       style={styles.eventRow}
       onPress={() => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        router.push(`/(tabs)/screens/event/${item.event_id}`);
+        router.push(`/event/${item.event_id}`);
       }}
     >
       <RemoteImage uri={item.image_url} size={48} borderRadius={8} />
@@ -208,7 +208,7 @@ export function PastEventGrid({
                   style={{ width: cell }}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    router.push(`/(tabs)/screens/event/${c.event_id}`);
+                    router.push(`/event/${c.event_id}`);
                   }}
                 >
                   {c.image_url ? (
