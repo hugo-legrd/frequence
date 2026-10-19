@@ -20,7 +20,7 @@ import type { ThemeColors } from '../../../lib/theme/tokens';
 import { useMyProfile } from '../../../lib/hooks/profile/useMyProfile';
 
 
-const SEARCH_ROUTE = '/(tabs)/screens/amis/search';
+const SEARCH_ROUTE = '/search';
 
 function SectionTitle({ title, color }: { title: string, color: string}) {
   return (

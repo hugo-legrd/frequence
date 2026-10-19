@@ -60,7 +60,7 @@ function activityKey(item: FriendActivityRow): string {
 }
 
 function goToProfile(userId: string | null) {
-  if (userId) router.push(`/(tabs)/screens/amis/${userId}`); 
+  if (userId) router.push(`/user/${userId}`); 
 }
 
 function goToEvent(eventId: string | null) {
@@ -169,7 +169,7 @@ export default function FriendsScreen() {
         </View>
         <Pressable
           style={styles.searchBtn}
-          onPress={() => router.push('/(tabs)/screens/amis/search')}
+          onPress={() => router.push('/search')}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text style={styles.searchIcon}>⌕</Text>
@@ -231,7 +231,7 @@ export default function FriendsScreen() {
           <Text style={styles.emptyText}>
             Suivez des amis pour voir les concerts qui les intéressent.
           </Text>
-          <Pressable style={styles.emptyBtn} onPress={() => router.push('/(tabs)/screens/amis/search')}>
+          <Pressable style={styles.emptyBtn} onPress={() => router.push('/search')}>
             <Text style={styles.emptyBtnText}>Trouver des amis</Text>
           </Pressable>
         </View>

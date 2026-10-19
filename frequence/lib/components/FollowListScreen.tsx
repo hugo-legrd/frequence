@@ -92,7 +92,7 @@ export default function FollowListScreen({ title, kind, userId, emptyText, backH
                 <Pressable
                   style={styles.rowMain}
                   onPress={() => router.push({
-                    pathname: '/(tabs)/screens/amis/[userId]',
+                    pathname: '/user/[userId]',
                     params: { userId: item.id, from: backHref ?? '' },
                   })}
                 > 

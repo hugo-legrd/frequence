@@ -35,7 +35,7 @@ function RequestRow({ item, styles, onAccept, onRefuse }: {
     <View style={styles.row}>
       <Pressable
         style={styles.identity}
-        onPress={() => router.push(`/(tabs)/screens/amis/${item.requester_id}`)}
+        onPress={() => router.push(`/user/${item.requester_id}`)}
       >
         {item.avatar_url ? (
           <Image source={{ uri: item.avatar_url }} style={styles.avatar} />

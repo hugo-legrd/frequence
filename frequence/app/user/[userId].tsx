@@ -6,24 +6,24 @@ import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { usePublicProfile } from '../../../../lib/hooks/profile/usePublicProfile';
-import { useFollow } from '../../../../lib/hooks/social/useFollow';
-import { useMutualFriends } from '../../../../lib/hooks/social/useMutualFriends';
-import { useUserEvents } from '../../../../lib/hooks/events/useUserEvents';
+import { usePublicProfile } from '../../lib/hooks/profile/usePublicProfile';
+import { useFollow } from '../../lib/hooks/social/useFollow';
+import { useMutualFriends } from '../../lib/hooks/social/useMutualFriends';
+import { useUserEvents } from '../../lib/hooks/events/useUserEvents';
 
-import { useTheme } from '../../../../lib/theme/ThemeContext';
+import { useTheme } from '../../lib/theme/ThemeContext';
 
-import RemoteImage from '../../../../lib/components/RemoteImage';
+import RemoteImage from '../../lib/components/RemoteImage';
 import { SectionHeader, ListeningProfile, EventListRow, 
   FadeInSection, PastEventGrid, deriveGenreStats, useProfileStyles } 
-from '../../../../lib/components/profile/profileParts';
+from '../../lib/components/profile/profileParts';
 
 export default function PublicProfileScreen() {
   const { colors } = useTheme();
   const styles = useProfileStyles();
   const { width } = useWindowDimensions();
 
-  const { userId, from } = useLocalSearchParams<{ userId: string, from?: string }>();
+  const { userId } = useLocalSearchParams<{ userId: string }>();
   const { profile, loading, setProfile } = usePublicProfile(userId);
   const { follow, unfollow, cancelRequest, loading: followLoading } = useFollow();
   const { mutuals, totalCount } = useMutualFriends(userId);
@@ -100,8 +100,8 @@ export default function PublicProfileScreen() {
   }
 
   function goBack() {
-    if (from) router.navigate(from as any);
-    else router.back();
+    if (router.canGoBack()) router.back();
+    else router.replace('/(tabs)/screens/home');
   }
 
   if (loading) {
@@ -171,7 +171,7 @@ export default function PublicProfileScreen() {
               <Pressable
                 hitSlop={8}
                 onPress={() => router.push({
-                  pathname: '/(tabs)/screens/amis/followers',
+                  pathname: '/user/followers',
                   params: { userId: profile.id, name: profile.display_name },
                 })}
               >
@@ -183,7 +183,7 @@ export default function PublicProfileScreen() {
               <Pressable
                 hitSlop={8}
                 onPress={() => router.push({
-                  pathname: '/(tabs)/screens/amis/following',
+                  pathname: '/user/following',
                   params: { userId: profile.id, name: profile.display_name }, 
                 })}
               >
