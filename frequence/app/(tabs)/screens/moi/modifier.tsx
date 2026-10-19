@@ -6,7 +6,9 @@ import * as Haptics from 'expo-haptics';
 
 import { useEditableGenres } from "../../../../lib/hooks/profile/useEditableGenres";
 import { useEditableName } from "../../../../lib/hooks/profile/useEditableName";
+
 import { useProfileVisibility } from "../../../../lib/hooks/social/useProfileVisibility";
+import { useBlockedUsers } from "../../../../lib/hooks/social/useBlockedUsers";
 
 import { supabase } from "../../../../lib/services/supabase";
 import { useTheme } from '../../../../lib/theme/ThemeContext';
@@ -20,8 +22,11 @@ export default function EditProfileScreen() {
   const { firstName, setFirstName, lastName, setLastName,
     loading: nameLoading, saving: nameSaving, save: saveName
   } = useEditableName();
-  const [nameSaved, setNameSaved] = useState(false);
   const { visibility, update: updateVisibility, error: visibilityError} = useProfileVisibility();
+  const { users: blockedUsers, loading: blockedLoading, unblock } = useBlockedUsers();
+
+  const [nameSaved, setNameSaved] = useState(false);
+  
   const [genresExpanded, setGenresExpanded] = useState(false);
   const [genreQuery, setGenreQuery] = useState('');
 
@@ -177,7 +182,36 @@ export default function EditProfileScreen() {
         </View>
         {!!visibilityError && <Text style={styles.settingError}>{visibilityError}</Text>}
 
-
+        <Text style={styles.sectionLabel}>COMPTES BLOQUÉS</Text>
+        {blockedLoading ? (
+          <ActivityIndicator color={colors.accent} style={{ marginVertical: 12 }} />
+        ) : blockedUsers.length === 0 ? (
+          <Text style={styles.settingHint}>Tu n'as bloqué personne.</Text>
+        ) : (
+          <View style={styles.blockedList}>
+            {blockedUsers.map((u, i) => (
+              <View
+                key={u.id}
+                style={[styles.blockedRow, i === blockedUsers.length - 1 && { borderBottomWidth: 0 }]}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.appearanceLabel}>{u.display_name}</Text>
+                  {u.handle && <Text style={styles.settingHint}>@{u.handle}</Text>}
+                </View>
+                <Pressable
+                  style={styles.unblockBtn}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    unblock(u.id);
+                  }}
+                >
+                  <Text style={styles.unblockBtnText}>Débloquer</Text>
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        )
+        } 
         {/* Déconnexion */}
         <Pressable style={styles.logoutBtn} onPress={handleLogout}>
           <Text style={styles.logoutBtnText}>Se déconnecter</Text>
@@ -280,5 +314,30 @@ function createStyles(colors: ThemeColors) {
     paddingHorizontal: 16, paddingVertical: 9,
   },
   genresToggleText: { fontSize: 12.5, fontWeight: '600', color: colors.accent },
+  blockedList: {
+    backgroundColor: colors.surface,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  blockedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.divider,
+  },
+  unblockBtn: {
+    borderWidth: 1,
+    borderColor: colors.divider,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  unblockBtnText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: colors.accent,
+  },
   })
 };

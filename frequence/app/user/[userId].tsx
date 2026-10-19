@@ -17,6 +17,11 @@ import RemoteImage from '../../lib/components/RemoteImage';
 import { SectionHeader, ListeningProfile, EventListRow, 
   FadeInSection, PastEventGrid, deriveGenreStats, useProfileStyles } 
 from '../../lib/components/profile/profileParts';
+import ReportUserModal from '../../lib/components/ReportUserModal';
+import ProfileActionsSheet from '../../lib/components/ProfileActionsSheet';
+
+import { blockUser, unblockUser, reportUser, type ReportReason } from '../../lib/services/moderation';
+
 
 export default function PublicProfileScreen() {
   const { colors } = useTheme();
@@ -30,6 +35,8 @@ export default function PublicProfileScreen() {
   const { events, loading: eventsLoading } = useUserEvents(userId, !!profile?.can_view);
 
   const [expanded, setExpanded] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const goingEvents = useMemo(() => events.filter(e => !e.is_past), [events]);
   const pastEvents = useMemo(() => events.filter(e => e.is_past), [events]);
@@ -99,6 +106,78 @@ export default function PublicProfileScreen() {
       }
   }
 
+  // Menu < ... > : Signaler et Bloquer / Débloquer
+  function openMenu() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setMenuOpen(true);
+  }
+
+  function fromMenu(action: () => void) {
+    setMenuOpen(false);
+    setTimeout(action, 350);
+  }
+
+  function confirmBlock() {
+    if (!profile) return;
+    Alert.alert(
+      `Bloquer ${profile.display_name} ?`,
+      "Vous ne vous suivrez plus, et vous ne pourrez plus voir le profil ni les concerts de l'autre. Cette personne ne sera pas prévenue.",
+      [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Bloquer', style: 'destructive', onPress: handleBlock},
+      ]
+    );
+  }
+
+  async function handleBlock() {
+    if (!profile) return;
+    const before = profile;
+    setProfile({
+      ...profile,
+      is_blocked: true,
+      is_following: false,
+      has_requested: false,
+      can_view: false,
+      followers_count: profile.is_following ? profile.followers_count - 1 : profile.followers_count,
+    });
+    const ok = await blockUser(profile.id);
+    if (!ok) {
+      setProfile(before);
+      Alert.alert('Erreur', "Impossible de bloquer ce compte pour l'instant.");
+      return;
+    }
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }
+
+  async function handleUnblock() {
+    if (!profile) return;
+    const before = profile;
+    setProfile({ ...profile, is_blocked: false, can_view: profile.profile_visibility === 'public' });
+    const ok = await unblockUser(profile.id);
+    if (!ok) setProfile(before);
+  }
+  
+  async function handleReport(reason: ReportReason, details: string): Promise<boolean> {
+    if (!profile) return false;
+    const ok = await reportUser(profile.id, reason, details);
+    if (!ok) return false;
+  
+    setReportOpen(false);
+    if (profile.is_blocked) {
+      Alert.alert('Merci pour ton signalement', 'Nous allons l’examiner.');
+    } else {
+      Alert.alert(
+        'Merci pour ton signalement',
+        `Nous allons l’examiner. Veux-tu aussi bloquer ${profile.display_name} ?`,
+        [
+          { text: 'Non merci', style: 'cancel' },
+          { text: 'Bloquer', style: 'destructive', onPress: handleBlock },
+        ]
+      );
+    }
+    return true;
+  }
+
   function goBack() {
     if (router.canGoBack()) router.back();
     else router.replace('/(tabs)/screens/home');
@@ -126,6 +205,16 @@ export default function PublicProfileScreen() {
         <Text style={styles.backArrow}>←</Text>
       </Pressable>
 
+      <Pressable
+        style={[styles.backFloat, { left: undefined, right: 16 }]}
+        onPress={openMenu}
+        hitSlop={8}
+        accessibilityLabel="Plus d'options"
+      >
+        <Feather name="more-horizontal" size={18} color={colors.text} />
+      </Pressable>
+
+
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <LinearGradient 
           colors={colors.headerBand}
@@ -151,16 +240,22 @@ export default function PublicProfileScreen() {
               )}
 
               <View style={styles.identityActions}>
-                <Pressable
-                  style={[styles.followBtn, (profile.is_following || profile.has_requested) && styles.followBtnActive]}
-                  onPress={toggleFollow}
-                  disabled={followLoading}
-                  hitSlop={6}
-                >
-                  <Text style={[styles.followLabel, (profile.is_following || profile.has_requested) && styles.followLabelActive]}>
-                    {profile.is_following ? 'Suivi' : profile.has_requested ? 'Demandé' : 'Suivre'}
-                  </Text>
-                </Pressable>
+                {profile.is_blocked ? (
+                  <Pressable style={styles.followBtn} onPress={handleUnblock} hitSlop={6}>
+                    <Text style={styles.followLabel}>Débloquer</Text>
+                  </Pressable>
+                ) : (
+                  <Pressable
+                    style={[styles.followBtn, (profile.is_following || profile.has_requested) && styles.followBtnActive]}
+                    onPress={toggleFollow}
+                    disabled={followLoading}
+                    hitSlop={6}
+                  >
+                    <Text style={[styles.followLabel, (profile.is_following || profile.has_requested) && styles.followLabelActive]}>
+                      {profile.is_following ? 'Suivi' : profile.has_requested ? 'Demandé' : 'Suivre'}
+                    </Text>
+                  </Pressable>
+                )}
               </View>
             </View>
 
@@ -206,7 +301,17 @@ export default function PublicProfileScreen() {
           </View>
         </FadeInSection>
         
-        {!profile.can_view ? (
+        {profile.is_blocked ? (
+          <FadeInSection delay={80}>
+            <View style={styles.lockedState}>
+              <Feather name="slash" size={22} color={colors.textMuted} />
+              <Text style={styles.lockedTitle}>Tu as bloqué ce compte</Text>
+              <Text style={styles.lockedSub}>
+                Débloque {profile.display_name} pour voir de nouveau son profil et ses concerts.
+              </Text>
+            </View>
+          </FadeInSection>
+        ): !profile.can_view ? (
           <FadeInSection delay={80}>
             <View style={styles.lockedState}>
               <Feather name="lock" size={22} color={colors.textMuted} />
@@ -278,6 +383,23 @@ export default function PublicProfileScreen() {
           </>
         )}
       </ScrollView>
+
+      <ProfileActionsSheet
+        visible={menuOpen}
+        userName={profile.display_name}
+        isBlocked={profile.is_blocked}
+        onClose={() => setMenuOpen(false)}
+        onReport={() => fromMenu(() => setReportOpen(true))}
+        onBlock={() => fromMenu(confirmBlock)}
+        onUnblock={() => fromMenu(handleBlock)}
+      />
+      
+      <ReportUserModal
+        visible={reportOpen}
+        userName={profile.display_name}
+        onClose={() => setReportOpen(false)}
+        onSubmit={handleReport}
+      />
     </View>
   )
 }

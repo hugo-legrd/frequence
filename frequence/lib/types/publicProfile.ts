@@ -10,4 +10,5 @@ export type PublicProfile = {
   following_count: number;
   events_count: number;
   has_requested: boolean;
+  is_blocked: boolean;
 };

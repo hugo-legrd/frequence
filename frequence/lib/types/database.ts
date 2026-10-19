@@ -305,6 +305,24 @@ export type Database = {
         }
         Relationships: []
       }
+      user_blocks: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       user_genres: {
         Row: {
           genre_id: string
@@ -327,6 +345,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_reports: {
+        Row: {
+          created_at: string
+          details: string | null
+          id: string
+          reason: string
+          reported_id: string
+          reporter_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          reason: string
+          reported_id: string
+          reporter_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          reason?: string
+          reported_id?: string
+          reporter_id?: string
+          status?: string
+        }
+        Relationships: []
       }
       users: {
         Row: {
@@ -438,6 +486,7 @@ export type Database = {
       }
     }
     Functions: {
+      block_user: { Args: { target: string }; Returns: undefined }
       can_view_user: { Args: { target: string }; Returns: boolean }
       cancel_follow_request: { Args: { target: string }; Returns: undefined }
       follow_user: { Args: { target: string }; Returns: string }
@@ -474,6 +523,14 @@ export type Database = {
           id: string
           name: string
           selected: boolean
+        }[]
+      }
+      get_blocked_users: {
+        Args: never
+        Returns: {
+          display_name: string
+          handle: string
+          id: string
         }[]
       }
       get_event_counts: {
@@ -615,6 +672,7 @@ export type Database = {
           handle: string
           has_requested: boolean
           id: string
+          is_blocked: boolean
           is_following: boolean
           profile_visibility: string
         }[]
@@ -647,6 +705,7 @@ export type Database = {
           venue_name: string
         }[]
       }
+      is_blocked_between: { Args: { a: string; b: string }; Returns: boolean }
       is_handle_available: { Args: { candidate: string }; Returns: boolean }
       is_public_user: { Args: { target: string }; Returns: boolean }
       respond_follow_request: {
@@ -668,6 +727,7 @@ export type Database = {
       set_my_handle: { Args: { new_handle: string }; Returns: string }
       set_my_visibility: { Args: { visibility: string }; Returns: string }
       sync_event_genres: { Args: { p_event_id: string }; Returns: undefined }
+      unblock_user: { Args: { target: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
