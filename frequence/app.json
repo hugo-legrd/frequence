@@ -17,7 +17,8 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": ["READ_CALENDAR", "WRITE_CALENDAR"]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -27,7 +28,8 @@
       "expo-secure-store",
       "expo-web-browser",
       "expo-font",
-      "expo-sharing"
+      "expo-sharing",
+      ["expo-calendar", { "calendarPermission": "Fréquence ajoute les soirées qui t'intéressent à ton calendrier." }]
     ]
   }
 }

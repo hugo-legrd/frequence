@@ -15,6 +15,7 @@ import { captureRef } from 'react-native-view-shot';
 import { useLocalSearchParams, router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import * as Sharing from 'expo-sharing';
+import { Feather } from '@expo/vector-icons';
 
 import { supabase } from '../../../../lib/services/supabase';
 import type { EventDetail } from '../../../../lib/types/event';
@@ -28,6 +29,8 @@ import ShareStoryCard from '../../../../lib/components/ShareStoryCard';
 import { useEventInterest } from '../../../../lib/hooks/events/useEventInterest';
 
 import { formatPrice } from '../../../../lib/utils/formatPrice';
+import { addEventToCalendar } from '../../../../lib/utils/addToCalendar';
+import { isExpoGo } from '../../../../lib/utils/runtime';
 
 const CATEGORY_LABELS: Record<string, string> = {
   gig: 'Concert',
@@ -59,6 +62,7 @@ export default function EventDetailScreen() {
   const storyRef = useRef<View>(null);
   const [storyImageReady, setStoryImageReady] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [addingToCalendar, setAddingToCalendar] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -125,7 +129,7 @@ export default function EventDetailScreen() {
           mimeType: 'image/png',
           UTI: 'public.png',
           dialogTitle: 'Partager cet événement',
-        })
+        });
       } else {
         await shareAsText();
       }
@@ -148,6 +152,29 @@ export default function EventDetailScreen() {
     } catch (e) {
       console.error(e);
     } 
+  }
+
+  async function handleAddToCalendar() {
+    if (!event?.starts_at || addingToCalendar) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setAddingToCalendar(true);
+
+    try {
+      const saved = await addEventToCalendar({
+        title: event.name,
+        startsAt: event.starts_at,
+        venueName: event.venues?.name,
+        address: event.venues?.address,
+        ticketLink: event.ticket_link,
+      });
+      if (saved) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setAddingToCalendar(false);
+    }
   }
 
 
@@ -281,9 +308,31 @@ export default function EventDetailScreen() {
                 {interest === 'going' ? '✅ J\'y vais' : 'J\'y vais'}
               </Text>
             </Pressable>
-            <Pressable style={styles.shareBtn} onPress={handleShare} disabled={sharing}>
-              <Text style={styles.shareBtnText}>{sharing ? 'Préparation...' : 'Partager'}</Text>
+          </View>
+          <View style={styles.secondaryRow}>
+            <Pressable
+              style={({ pressed }) => [styles.secondaryBtn, pressed && styles.secondaryBtnPressed]}
+              onPress={handleShare}
+              disabled={sharing}
+            >
+              {sharing ? (
+                <ActivityIndicator size="small" color={colors.text} />
+              ) : (
+                <Feather name="share" size={15} color={colors.text} />
+              )}
+              <Text style={styles.secondaryBtnText}>Partager</Text>
             </Pressable>
+
+            {event.starts_at && !isExpoGo && (
+              <Pressable
+                style={({ pressed }) => [styles.secondaryBtn, pressed && styles.secondaryBtnPressed]}
+                onPress={handleAddToCalendar}
+                disabled={addingToCalendar}
+              >
+                <Feather name="calendar" size={15} color={colors.text} />
+                <Text style={styles.secondaryBtnText}>Calendrier</Text>
+              </Pressable>
+            )}
           </View>
 
           <View style={styles.divider} />
@@ -482,17 +531,6 @@ function createStyles(colors: ThemeColors) {
   pillBtnTextActive: {
     color: colors.accent,
   },
-  shareBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  shareBtnText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: colors.text,
-  },
   lineupText: {
     fontSize: 14,
     color: colors.textMuted,
@@ -575,6 +613,31 @@ function createStyles(colors: ThemeColors) {
     position: 'absolute',
     top: 0,
     left: -10000,
+  },
+  secondaryRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 12,
+  },
+  secondaryBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 11,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    backgroundColor: colors.surface,
+  },
+  secondaryBtnPressed: {
+    opacity: 0.7,
+  },
+  secondaryBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text,
   },
 })
 };
