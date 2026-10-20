@@ -1,4 +1,4 @@
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { supabase } from '../lib/services/supabase';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -7,6 +7,12 @@ import { ThemeProvider } from '../lib/theme/ThemeContext';
 export default function RootLayout() {
   const router = useRouter();
   const isReady = useRef(false);
+  const segments = useSegments();
+  const segmentsRef = useRef(segments);
+
+  useEffect(() => {
+    segmentsRef.current = segments;
+  }, [segments]);
 
   useEffect(() => {
     // Marquer le navigator comme prêt avant le premier render
@@ -15,15 +21,11 @@ export default function RootLayout() {
     }, 500);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!isReady.current) {
-        return;
-      }
-
-      //Uniquement gérer la déconnexion ici
-      // La connexion est gérée dans index.tsx et login.tsx
-      if (!session) {
-        router.replace('/(auth)/login');
-      }
+      if (!isReady.current) return;
+        if (_event === 'SIGNED_OUT' || !session) {
+          const alreadyOnAuth = segmentsRef.current[0] === '(auth)';
+          if (!alreadyOnAuth) router.replace('/(auth)/login');
+        }
     });
 
     return () => {

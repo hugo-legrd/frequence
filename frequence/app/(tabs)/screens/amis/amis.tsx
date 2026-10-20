@@ -133,7 +133,11 @@ export default function FriendsScreen() {
     currentUserId, followingCount, refetch, loadMore 
   } = useFriendsActivity();
   const [refreshing, setRefreshing] = useState(false);
-  const sections = useMemo(() => groupByDay(activity), [activity]);
+  const visibleActivity = useMemo(
+    () => activity.filter(a => a.kind !== 'follow' || a.target_user_id === currentUserId),
+    [activity, currentUserId]
+  );
+  const sections = useMemo(() => groupByDay(visibleActivity), [visibleActivity]);
   
   const { markAsSeen } = useUnreadActivity();
   const { requests, refresh: refreshRequests } = useFollowRequests();

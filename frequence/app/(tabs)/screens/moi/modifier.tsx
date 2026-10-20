@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator, Switch, Alert } from 'react-native';
 
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -26,9 +26,9 @@ export default function EditProfileScreen() {
   const { users: blockedUsers, loading: blockedLoading, unblock } = useBlockedUsers();
 
   const [nameSaved, setNameSaved] = useState(false);
-  
   const [genresExpanded, setGenresExpanded] = useState(false);
   const [genreQuery, setGenreQuery] = useState('');
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const selectedGenres = useMemo(() => genres.filter(g => g.selected), [genres]);
   const visibleGenres = useMemo(() => {
@@ -47,9 +47,19 @@ export default function EditProfileScreen() {
   }
 
   async function handleLogout() {
+    if (loggingOut) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await supabase.auth.signOut();
-    router.replace('/(auth)/login');
+    setLoggingOut(true);
+
+    await new Promise(resolve => setTimeout(resolve, 400));
+
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      console.error(error);
+      setLoggingOut(false);
+      Alert.alert('Déconnexion impossible', 'Vérifie ta connexion internet et réessaie.')
+    }
   }
 
   return (
@@ -213,8 +223,21 @@ export default function EditProfileScreen() {
         )
         } 
         {/* Déconnexion */}
-        <Pressable style={styles.logoutBtn} onPress={handleLogout}>
-          <Text style={styles.logoutBtnText}>Se déconnecter</Text>
+        <Pressable
+          style={[styles.logoutBtn, loggingOut && styles.logoutBtnDisabled]}
+          onPress={handleLogout}
+          disabled={loggingOut}
+        >
+          {loggingOut ? (
+            <View style={styles.logoutLoading}>
+              <ActivityIndicator size="small" color={isDark ? '#FFFFFF' : colors.danger} />
+              <Text style={[styles.logoutBtnText, { color: isDark ? '#FFFFFF' : colors.danger }]}>
+                Déconnexion...
+              </Text>
+            </View>
+          ) : (
+            <Text style={[styles.logoutBtnText, { color: isDark ? '#FFFFFF' : colors.danger }]}>Se déconnecter</Text>
+          )}
         </Pressable>
       </ScrollView>
     </View>
@@ -290,12 +313,15 @@ function createStyles(colors: ThemeColors) {
   logoutBtn: {
     marginTop: 40,
     borderWidth: 1,
-    borderColor: colors.accentSoftBorder,
+    borderColor: colors.danger,
+    backgroundColor: `${colors.danger}26`,
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
   },
   logoutBtnText: { color: colors.danger, fontSize: 14, fontWeight: '600' },
+  logoutBtnDisabled: { opacity: 0.7 },
+  logoutLoading: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   appearanceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
