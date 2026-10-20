@@ -619,6 +619,10 @@ export type Database = {
           venue_name: string
         }[]
       }
+      get_home_night: {
+        Args: { range_from: string; range_to: string }
+        Returns: Json
+      }
       get_mutual_friends: {
         Args: {
           current_user_id: string

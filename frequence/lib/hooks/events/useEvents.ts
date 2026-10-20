@@ -27,7 +27,7 @@ export type Event = {
   currency: string | null;
 };
 
-function getDateRange(dateFilter: string): { from: string; to: string} | null {
+export function getDateRange(dateFilter: string): { from: string; to: string} | null {
   const now = new Date();
 
   if (dateFilter === 'today') {

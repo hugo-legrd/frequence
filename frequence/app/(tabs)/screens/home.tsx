@@ -1,34 +1,41 @@
-import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, useWindowDimensions } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 
 import { Ionicons } from '@expo/vector-icons';
 
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
-import { useRandomEvent } from '../../../lib/hooks/events/useRandomEvent';
-import { useHomeFriendsPick } from '../../../lib/hooks/social/useHomeFriendsPick';
-import { useLatestEvents } from '../../../lib/hooks/events/useLatestEvents';
-import { useEvents } from '../../../lib/hooks/events/useEvents';
+import { useNightPick, type NightEvent } from '../../../lib/hooks/events/useNightPick';
+import { useMyProfile } from '../../../lib/hooks/profile/useMyProfile';
 
 import RemoteImage from '../../../lib/components/RemoteImage';
+import { getCategoryLabel } from '../../../lib/utils/eventCategory';
 
 import { useTheme } from '../../../lib/theme/ThemeContext';
 import type { ThemeColors } from '../../../lib/theme/tokens';
 
-import { useMyProfile } from '../../../lib/hooks/profile/useMyProfile';
+const WHEN = {
+  today: {
+    label: 'Ce soir',
+    greeting: 'Voici ta nuit.',
+    pick: 'LE PICK DE LA NUIT',
+    others: 'AUSSI CE SOIR',
+    friends: 'ce soir',
+    empty: "Rien de prévu ce soir pour l'instant.",
+  },
+  weekend: {
+    label: 'Ce week-end',
+    greeting: 'Voici ton week-end.',
+    pick: 'LE PICK DU WEEK-END',
+    others: 'AUSSI CE WEEK-END',
+    friends: 'ce week-end',
+    empty: "Rien de prévu ce week-end pour l'instant.",
+  },
+} as const;
 
-
-const SEARCH_ROUTE = '/search';
-
-function SectionTitle({ title, color }: { title: string, color: string}) {
-  return (
-    <Text style={[styles_sectionTitleBase, { color }]}>
-      {title}
-    </Text>
-  );
-}
+type WhenKey = keyof typeof WHEN;
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -37,80 +44,80 @@ function getGreeting(): string {
   return 'Bonsoir.'
 }
 
-function formatFriendsLabel(names: string[]): string {
-  if (names.length === 0) return '';
-  if (names.length === 1) return names[0];
-  const extra = names.length - 1;
+function formatFriendsLabel(names: string[], total: number): string {
+  if (names.length === 0 || total === 0) return '';
+  if (total === 1) return names[0];
+  const extra = total - 1;
   return `${names[0]} + ${extra} ami${extra > 1 ? 's' : ''}`;
 }
 
-function formatEventDateTime(iso: string | null): string {
+function formatWhen(iso: string | null, when: WhenKey): string {
   if (!iso) return '';
-  return new Date(iso).toLocaleDateString('fr-FR', {
-    day: 'numeric',
-    month: 'long',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).replace(',', ' ·');
-}
-
-const MAX_HERO_GENRES = 2;
-
-function formatHeroMeta(venueName: string | null, startsAt: string | null, genreNames: string[] | null): string {
-  const parts = [venueName, formatEventDateTime(startsAt)].filter(Boolean);
-  if (genreNames && genreNames.length > 0){
-    parts.push(genreNames.slice(0, MAX_HERO_GENRES).join(', '));
-  }
-  return parts.join(' · ');
-}
-
-const WHEN_FILTERS = [
-  { key: 'today', label: 'Ce soir', title: 'CE SOIR', empty: "Rien de prévu ce soir pour l'instant." },
-  { key: 'weekend', label: 'Ce week-end', title: 'CE WEEK-END', empty: "Rien de prévu ce week-end pour l'instant." },
-] as const;
-
-type WhenKey = typeof WHEN_FILTERS[number]['key'];
-
-function formatWhenMeta(startsAt: string | null, venueName: string | undefined, when: WhenKey): string {
-  if (!startsAt) return venueName ?? '';
-  const d = new Date(startsAt);
+  const d = new Date(iso);
   const time = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  if (when === 'today') return time;
   const day = d.toLocaleDateString('fr-FR', { weekday: 'short' });
-  const label = when === 'weekend' ? `${day.charAt(0).toUpperCase()}${day.slice(1)} ${time}` : time;
-  return venueName ? `${label} · ${venueName}` : label;
+  return `${day.charAt(0).toUpperCase()}${day.slice(1)} ${time}`;
 }
 
-const styles_sectionTitleBase = {
-  fontSize: 12,
-  fontWeight: '600' as const,
-  letterSpacing: 0.3,
-  marginTop: 20,
-  marginBottom: 9,
-  paddingHorizontal: 20,
-};
+function formatMeta(event: NightEvent, when: WhenKey): string {
+  return [event.venue_name, formatWhen(event.starts_at, when)].filter(Boolean).join(' · ');
+}
+
+function openEvent(id: string) {
+  router.push(`/event/${id}`);
+}
 
 export default function HomeScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [when, setWhen] = useState<WhenKey>('today');
-  const { events: whenEvents, loading: whenLoading } = useEvents({ date: when, genres: [] });
-  const activeWhen = WHEN_FILTERS.find(f => f.key === when)!;
-  const { event: randomEvent, loading: eventLoading } = useRandomEvent();
-  const { pick: friendsPick, loading: friendsLoading } = useHomeFriendsPick();
-  const { events: latestsEvents, loading: latestLoading } = useLatestEvents();
+  const { night, loading, refetch } = useNightPick(when);
   const { profile } = useMyProfile();
+  const [refreshing, setRefreshing] = useState(false);
+
   const userInitial = profile?.display_name?.charAt(0).toUpperCase() ?? '';
+  const copy = WHEN[when];
+  const pick = night?.pick ?? null;
+  const others = night?.others ?? [];
+  const friendsOut = night?.friends_out ?? 0;
+  const pickFriendNames = (night?.pick_friends ?? []).map(f => f.name);
+
+  // On recharge en revenant sur l'onglet (un ami a pu marquer une soirée entre-temps)
+  const firstFocus = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      if (firstFocus.current) {
+        firstFocus.current = false; // Le hook fait déjà le chargement inital
+        return;
+      }
+      refetch();
+    }, [refetch])
+  );
+
+  async function onRefresh() {
+    setRefreshing(true);
+    try {
+      await Promise.all([refetch(), new Promise(resolve => setTimeout(resolve, 600))]);
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
+  function selectWhen(key: WhenKey) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setWhen(key);
+  }
   
-  const { width: screenWidth } = useWindowDimensions();
-  const heroWidth = screenWidth - 40;
-
-
   return (
     <View style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />
+        }
       >
         {/* Header */}
         <View style={styles.header}>
@@ -118,188 +125,174 @@ export default function HomeScreen() {
           <View style={styles.headerActions}>
             <Pressable
               style={styles.iconButton}
-              onPress={() => router.push(SEARCH_ROUTE as never)}
+              onPress={() => router.push('/search')}
               hitSlop={8}
+              accessibilityLabel="Rechercher"
             >
               <Ionicons name="search" size={18} color={colors.text} />
             </Pressable>
-            <Pressable style={styles.profileButton} onPress={() => router.push('/(tabs)/screens/moi')}>
+            <Pressable 
+              style={styles.profileButton} 
+              onPress={() => router.push('/(tabs)/screens/moi')}
+              accessibilityLabel="Mon profil"  
+            >
               <Text style={styles.profileIcon}>{userInitial}</Text>
             </Pressable>
           </View>
         </View>
 
         {/* Greeting */}
-        <Text style={styles.greeting}>{getGreeting()}{'\n'}Voici votre nuit.</Text>
+        <Text style={styles.greeting}>{getGreeting()}{'\n'}{copy.greeting}</Text>
 
         {/* Filters */}
         <View style={styles.filters}>
-          {WHEN_FILTERS.map(f => {
-            const active = when === f.key;
+          {(Object.keys(WHEN) as WhenKey[]).map(key => {
+            const active = when === key;
             return (
               <Pressable
-                key={f.key}
+                key={key}
                 style={[styles.filter, active && styles.filterActive]}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setWhen(f.key)
-                }}
+                onPress={() => selectWhen(key)}
               >
                 <Text style={[styles.filterText, active && styles.filterTextActive]}>
-                  {f.label}
+                  {WHEN[key].label}
                 </Text>
               </Pressable>
             );
           })}
         </View>
 
-        <View style={styles.divider} />
 
-        {/* Ce soir / Ce week end */}
-        <View style={styles.whenHeader}>
-          <SectionTitle title={activeWhen.title} color={colors.textMuted} />
-          <Pressable
-            hitSlop={8}
-            onPress={() => router.push({ pathname: '/(tabs)/screens/concerts', params: { date: when } })}
-          >
-            <Text style={styles.seeAll}>Tout voir</Text>
-          </Pressable>
-        </View>
-
-        {whenLoading ? (
+        {loading ? (
           <View style={styles.sectionLoading}>
-            <ActivityIndicator color={colors.accent}/>
+              <ActivityIndicator color={colors.accent} />
           </View>
-          ) : whenEvents.length === 0 ? (
-            <Text style={styles.whenEmpty}>{activeWhen.empty}</Text>
-          ) : (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.whenList}>
-              {whenEvents.map(item => (
-                <Pressable
-                  key={item.id}
-                  style={styles.whenCard}
-                  onPress={() => router.push(`/event/${item.id}`)}
-                >
-                  {item.image_url ? (
-                    <RemoteImage key={item.image_url} uri={item.image_url} size={0} borderRadius={14} style={styles.whenImage} />
-                  ) : (
-                    <View style={styles.whenImage} />
-                  )}
-                  {item.sold_out && (
-                    <View style={styles.soldOutBadge}>
-                      <Text style={styles.soldOutText}>COMPLET</Text>
-                    </View>
-                  )}
-                  <Text style={styles.whenName} numberOfLines={1}>{item.artist?.name ?? item.name}</Text>
-                  <Text style={styles.whenMeta} numberOfLines={1}>
-                    {formatWhenMeta(item.starts_at, item.venue?.name, when)}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-          )}
-
-        {/* Recommended - hero treatment */}
-        {eventLoading && (
-          <View style={styles.sectionLoading}>
-            <ActivityIndicator color={colors.accent} />
+        ) : !pick ? (
+          /* Aucune soirée sur la période*/
+          <View style={styles.empty}>
+            <Text style={styles.emptyText}>{copy.empty}</Text>
+            <Pressable style={styles.emptyBtn} onPress={() => router.push('/(tabs)/screens/concerts')}>
+              <Text style={styles.emptyBtnText}>Voir tous les concerts</Text>
+            </Pressable>
           </View>
-        )}
-
-        {!eventLoading && randomEvent && (
-          <Pressable
-            style={[styles.heroCard, { width: heroWidth, height: heroWidth * 5 / 4}]}
-            onPress={() => router.push(`/event/${randomEvent.event_id}`)}
-          >
-            {randomEvent.image_url ? (
-              <RemoteImage
-                key={randomEvent.image_url}
-                uri={randomEvent.image_url}
-                size={0}
-                borderRadius={0}
-                style={styles.heroImage}
-              />
-            ) : (
-              <View style={styles.heroImage}>
-                <Text style={styles.placeholderText}>[image artiste]</Text>
-              </View>
-            )}
-
-            <View style={styles.heroOverlay}>
-              <Text style={styles.heroTitle} numberOfLines={2}>
-                {randomEvent.artist_name ?? randomEvent.event_name}
-              </Text>
-              <Text style={styles.heroMeta}>
-                {formatHeroMeta(randomEvent.venue_name, randomEvent.starts_at, randomEvent.genre_names)}
-              </Text>
-            </View>
-          </Pressable>
-        )}
-
-        {/* Friends */}
-        {!friendsLoading && friendsPick && (
+        ) : (
           <>
-            <SectionTitle title="AMIS INTÉRESSÉS" color={colors.textMuted} />
+            {/* Le pick */}
+            <Text style={styles.sectionLabel}>{copy.pick}</Text>
             <Pressable
-              style={styles.friendCard}
-              onPress={() => router.push(`/event/${friendsPick.event_id}`)}
+              style={({ pressed }) => [styles.pickCard, pressed && styles.pressed]}
+              onPress={() => openEvent(pick.id)}
             >
-              <View style={styles.avatarGroup}>
-                <View style={[styles.avatar, styles.avatarOne]}>
-                  <Text style={styles.avatarInitial}>
-                    {friendsPick.friend_names[0]?.charAt(0).toUpperCase()}
-                  </Text>
+              {pick.image_url ? (
+                <RemoteImage
+                  key={pick.image_url}
+                  uri={pick.image_url}
+                  size={0}
+                  borderRadius={0}
+                  style={styles.pickImage}
+                />  
+              ) : (
+                <View style={styles.pickImage} />
+              )}
+              {pick.sold_out && (
+                <View style={styles.soldOutBadgeOverlay}>
+                  <Text style={styles.soldOutTextOverlay}>COMPLET</Text>
                 </View>
-                {friendsPick.friend_names[1] && (
-                  <View style={[styles.avatar, styles.avatarTwo]}>
-                    <Text style={styles.avatarInitial}>
-                      {friendsPick.friend_names[1].charAt(0).toUpperCase()}
+              )}
+              <View style={styles.pickBody}>
+                <Text style={styles.pickEyebrow}>{getCategoryLabel(pick.category).toUpperCase()}</Text>
+                <Text style={styles.pickTitle} numberOfLines={2}>
+                  {pick.artist_name ?? pick.name}
+                </Text>
+                <Text style={styles.pickMeta}>{formatMeta(pick, when)}</Text>
+                {pick.friends_count > 0 && (
+                  <View style={styles.pickFriends}>
+                    <View style={styles.avatarStack}>
+                      {pickFriendNames.slice(0, 2).map((name, i) => (
+                        <View
+                          key={`${name}-${i}`}
+                          style={[
+                            styles.miniAvatar,
+                            { backgroundColor: i === 0 ? colors.accentRamp[600] : colors.accentRamp[700]},
+                            i > 0 && { marginLeft: -8 }
+                          ]}
+                        >
+                          <Text style={styles.miniAvatarText}>{name.charAt(0).toUpperCase()}</Text>
+                        </View>
+                      ))}
+                    </View>
+                    <Text style={styles.pickFriendsText}>
+                      {formatFriendsLabel(pickFriendNames, pick.friends_count)}
                     </Text>
                   </View>
                 )}
               </View>
-
-              <View style={styles.friendInfo}>
-                <Text style={styles.friendArtist}>
-                  {friendsPick.artist_name ?? friendsPick.event_name}
-                </Text>
-                <Text style={styles.friendMeta}>
-                  {formatFriendsLabel(friendsPick.friend_names)}
-                  {friendsPick.venue_name ? ` · ${friendsPick.venue_name}` : ''}
-                </Text>
-              </View>
             </Pressable>
+
+            {/* Les autres soirées */}
+            {others.length > 0 && (
+              <>
+                <View style={styles.sectionHeader}>
+                  <Text style={[styles.sectionLabel, styles.sectionLabelInline]}>{copy.others}</Text>
+                  <Pressable
+                    hitSlop={8}
+                    onPress={() => router.push({ pathname: '/(tabs)/screens/concerts', params: { date: when } })}
+                  >
+                    <Text style={styles.seeAll}>Tout voir</Text>
+                  </Pressable>
+                </View>
+                <View style={styles.list}>
+                  {others.map((event, i) => (
+                    <Pressable
+                      key={event.id}
+                      style={({ pressed }) => [
+                        styles.row,
+                        i < others.length - 1 && styles.rowDivider,
+                        pressed && styles.pressed,
+                      ]}
+                      onPress={() => openEvent(event.id)}
+                    >
+                      {event.image_url ? (
+                        <RemoteImage uri={event.image_url} size={52} borderRadius={10} />
+                      ) : (
+                        <View style={styles.rowThumb} />
+                      )}
+                      <View style={styles.rowContent}>
+                        <Text style={styles.rowTitle} numberOfLines={1}>
+                          {event.artist_name ?? event.name}
+                        </Text>
+                        <Text style={styles.rowMeta} numberOfLines={1}>{formatMeta(event, when)}</Text>
+                      </View>
+                      {event.sold_out && (
+                        <View style={styles.soldOutBadge}>
+                          <Text style={styles.soldOutText}>COMPLET</Text>
+                        </View>
+                      )}
+                    </Pressable>
+                  ))}
+                </View>
+              </>
+            )}
+
+
+            {/* Les amis qui sortent */}
+            {friendsOut > 0 && (
+            <Pressable
+              style={({ pressed }) => [styles.friendsCard, pressed && styles.pressed]}
+              onPress={() => router.push('/(tabs)/screens/amis')}
+            >
+              <Ionicons name="people" size={20} color={colors.accent} />
+              <View style={styles.rowContent}>
+                <Text style={styles.friendsTitle}>
+                  {friendsOut} ami{friendsOut > 1 ? 's sortent' : ' sort'} {copy.friends}
+                </Text>
+                <Text style={styles.rowMeta}>Voir où ils vont</Text> 
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+            </Pressable>
+          )}
           </>
         )}
-
-        {/* New releases */}
-        {!latestLoading && latestsEvents.length > 0 && (
-          <>
-            <SectionTitle title="NOUVEAUTÉS" color={colors.textMuted} />
-            <View style={styles.newEvents}>
-              {latestsEvents.map(item => (
-                <Pressable
-                  key={item.id}
-                  style={styles.smallCard}
-                  onPress={() => router.push(`/event/${item.id}`)}
-                >
-                  {item.image_url ? (
-                    <RemoteImage
-                      key={item.image_url}
-                      uri={item.image_url}
-                      size={0}
-                      borderRadius={16}
-                      style={styles.smallImagePlaceholder}
-                    />
-                  ) : (
-                    <View style={styles.smallImagePlaceholder} />
-                  )}
-                </Pressable>
-              ))}
-            </View>
-          </>
-        )}
-
       </ScrollView>
     </View>
   );
@@ -307,13 +300,10 @@ export default function HomeScreen() {
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.bg,
-    },
-    content: {
-      paddingBottom: 24,
-    },
+    container: { flex: 1, backgroundColor: colors.bg },
+    content: { paddingBottom: 32 },
+    pressed: { opacity: 0.7 },
+ 
     header: {
       height: 88,
       paddingHorizontal: 20,
@@ -322,197 +312,92 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       justifyContent: 'space-between',
     },
-    headerActions: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 10,
-    },
-    logo: {
-      fontSize: 30,
-      fontWeight: '600',
-      color: colors.text,
-      letterSpacing: -1,
-    },
-    iconButton: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
+    headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    logo: { fontSize: 30, fontWeight: '600', color: colors.text, letterSpacing: -1 },
+    iconButton: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
     profileButton: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      backgroundColor: colors.surface,
-      justifyContent: 'center',
-      alignItems: 'center',
+      width: 36, height: 36, borderRadius: 18,
+      backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center',
     },
-    profileIcon: {
-      fontSize: 20,
-      color: colors.accent,
-      marginTop: 0,
-    },
+    profileIcon: { fontSize: 20, color: colors.accent },
+ 
     greeting: {
-      fontSize: 26,
-      fontWeight: '600',
-      color: colors.text,
-      lineHeight: 32,
-      paddingHorizontal: 20,
-      marginTop: 6,
-      marginBottom: 18,
+      fontSize: 26, fontWeight: '600', color: colors.text, lineHeight: 32,
+      paddingHorizontal: 20, marginTop: 6, marginBottom: 18,
     },
-    filters: {
-      flexDirection: 'row',
-      paddingHorizontal: 20,
-      gap: 10,
-      marginBottom: 16,
-    },
+ 
+    filters: { flexDirection: 'row', paddingHorizontal: 20, gap: 10, marginBottom: 8 },
     filter: {
-      height: 34,
-      paddingHorizontal: 15,
-      borderRadius: 18,
-      borderWidth: 1,
-      borderColor: colors.divider,
-      justifyContent: 'center',
-      alignItems: 'center',
+      height: 34, paddingHorizontal: 15, borderRadius: 18,
+      borderWidth: 1, borderColor: colors.divider, justifyContent: 'center', alignItems: 'center',
     },
-    filterActive: {
-      backgroundColor: colors.text,
-      borderColor: colors.text,
+    filterActive: { backgroundColor: colors.text, borderColor: colors.text },
+    filterText: { fontSize: 13, color: colors.textMuted, fontWeight: '500' },
+    filterTextActive: { color: colors.bg },
+ 
+    sectionLoading: { paddingVertical: 60, alignItems: 'center' },
+    sectionLabel: {
+      fontSize: 11, fontWeight: '600', letterSpacing: 1.5, color: colors.textMuted,
+      paddingHorizontal: 20, marginTop: 24, marginBottom: 10,
     },
-    filterText: {
-      fontSize: 13,
-      color: colors.textMuted,
-      fontWeight: '500',
+    sectionHeader: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      paddingRight: 20, marginTop: 26, marginBottom: 4,
     },
-    filterTextActive: {
-      color: colors.bg,
+    sectionLabelInline: { marginTop: 0, marginBottom: 0 },
+    seeAll: { fontSize: 12, fontWeight: '600', color: colors.accent },
+ 
+    pickCard: {
+      marginHorizontal: 20, borderRadius: 20, overflow: 'hidden',
+      backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.divider,
     },
-    heroCard: {
-      marginHorizontal: 20,
-      marginTop: 24,
-      marginBottom: 8,
-      borderRadius: 22,
-      overflow: 'hidden',
-      backgroundColor: colors.surface,
+    pickImage: { width: '100%', height: 200, backgroundColor: colors.divider },
+    pickBody: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 16, gap: 4 },
+    pickEyebrow: { fontSize: 11, fontWeight: '600', letterSpacing: 1.5, color: colors.accent },
+    pickTitle: { fontSize: 22, fontWeight: '700', letterSpacing: -0.5, color: colors.text },
+    pickMeta: { fontSize: 13, color: colors.textMuted },
+    pickFriends: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
+    avatarStack: { flexDirection: 'row' },
+    miniAvatar: {
+      width: 24, height: 24, borderRadius: 12,
+      borderWidth: 2, borderColor: colors.surface,
+      justifyContent: 'center', alignItems: 'center',
     },
-    heroImage: {
-      width: '100%',
-      height: '100%',
-      justifyContent: 'center',
-      alignItems: 'center',
+    miniAvatarText: { fontSize: 10, fontWeight: '600', color: colors.accentRamp[100] },
+    pickFriendsText: { fontSize: 12, fontWeight: '500', color: colors.accent },
+ 
+    list: { paddingHorizontal: 20 },
+    row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
+    rowDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.divider },
+    rowThumb: { width: 52, height: 52, borderRadius: 10, backgroundColor: colors.surface },
+    rowContent: { flex: 1, gap: 3 },
+    rowTitle: { fontSize: 15, fontWeight: '600', color: colors.text },
+    rowMeta: { fontSize: 12, color: colors.textMuted },
+ 
+    soldOutBadge: {
+      paddingVertical: 3, paddingHorizontal: 8, borderRadius: 100, backgroundColor: colors.text,
     },
-    heroOverlay: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      bottom: 0,
-      paddingHorizontal: 18,
-      paddingTop: 40,
-      paddingBottom: 18,
-      backgroundColor: `${colors.bg}E6`,
+    soldOutText: { fontSize: 10, fontWeight: '700', letterSpacing: 1, color: colors.bg },
+    soldOutBadgeOverlay: {
+      position: 'absolute', top: 12, left: 12,
+      paddingVertical: 3, paddingHorizontal: 9, borderRadius: 100, backgroundColor: colors.bg,
     },
-    heroTitle: {
-      fontSize: 22,
-      fontWeight: '600',
-      color: colors.text,
-      marginBottom: 4,
+    soldOutTextOverlay: { fontSize: 10, fontWeight: '700', letterSpacing: 1, color: colors.text },
+ 
+    friendsCard: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      marginHorizontal: 20, marginTop: 22, padding: 14,
+      borderRadius: 16, backgroundColor: colors.surface,
+      borderWidth: 1, borderColor: colors.divider,
     },
-    heroMeta: {
-      fontSize: 13,
-      color: colors.textMuted,
+    friendsTitle: { fontSize: 14, fontWeight: '600', color: colors.text },
+ 
+    empty: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 32, gap: 14 },
+    emptyText: { fontSize: 14, color: colors.textMuted, textAlign: 'center' },
+    emptyBtn: {
+      borderWidth: 1, borderColor: colors.accent, borderRadius: 10,
+      paddingHorizontal: 18, paddingVertical: 10,
     },
-    divider: {
-      height: 1,
-      backgroundColor: colors.divider,
-      marginBottom: 4,
-    },
-    sectionLoading: { paddingVertical: 30, alignItems: 'center' },
-    placeholderText: {
-      fontSize: 14,
-      fontStyle: 'italic',
-      color: colors.textMuted,
-    },
-    friendCard: {
-      marginHorizontal: 20,
-      height: 78,
-      borderRadius: 18,
-      borderWidth: 1,
-      borderColor: colors.divider,
-      backgroundColor: colors.surface,
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 14,
-    },
-    avatarGroup: {
-      width: 60,
-      height: 48,
-      position: 'relative',
-      justifyContent: 'center',
-    },
-    avatar: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
-      position: 'absolute',
-      borderWidth: 2,
-      borderColor: colors.surface,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    avatarOne: {
-      left: 0,
-      backgroundColor: colors.accentRamp[600],
-    },
-    avatarTwo: {
-      left: 22,
-      backgroundColor: colors.accentRamp[700],
-    },
-    avatarInitial: { fontSize: 13, fontWeight: '600', color: colors.accentRamp[100] },
-    friendInfo: {
-      marginLeft: 8,
-      flex: 1,
-    },
-    friendArtist: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: colors.text,
-      marginBottom: 3,
-    },
-    friendMeta: {
-      fontSize: 12,
-      color: colors.textMuted,
-    },
-    newEvents: {
-      flexDirection: 'row',
-      gap: 12,
-      paddingHorizontal: 20,
-    },
-    smallCard: {
-      flex: 1,
-      height: 130,
-      borderRadius: 16,
-      overflow: 'hidden',
-    },
-    smallImagePlaceholder: {
-      flex: 1,
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.divider,
-      borderRadius: 16,
-      width: '100%', 
-      height: '100%'
-    },
-    whenHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    seeAll: { fontSize: 12, fontWeight: '600', color: colors.accent, paddingHorizontal: 20, marginTop: 20, marginBottom: 9 },
-    whenList: { paddingHorizontal: 20, gap: 10 },
-    whenCard: { width: 120 },
-    whenImage: { width: 120, height: 120, borderRadius: 12, backgroundColor: colors.surface, marginBottom: 6 },
-    whenName: { fontSize: 13, fontWeight: '600', color: colors.text} ,
-    whenMeta: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
-    whenEmpty: { fontSize: 13, color: colors.textMuted, paddingHorizontal: 20 },
-    soldOutBadge: { position: 'absolute', top: 8, left: 8, paddingVertical: 3, paddingHorizontal: 9, borderRadius: 100, backgroundColor: colors.bg },
-    soldOutText: { fontSize: 10, fontWeight: '700', letterSpacing: 1, color: colors.text },
-  })
-} 
+    emptyBtnText: { fontSize: 13.5, fontWeight: '600', color: colors.accent },
+  });
+}
