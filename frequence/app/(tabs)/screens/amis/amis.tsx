@@ -5,8 +5,11 @@ import { router, useFocusEffect } from 'expo-router';
 
 import { useFriendsActivity } from '../../../../lib/hooks/social/useFriendsActivity';
 import { useFollowRequests } from '../../../../lib/hooks/social/useFollowRequests';
+import { useFriendSuggestions } from '../../../../lib/hooks/social/useFriendSuggestions';
 
 import type { FriendActivityRow } from '../../../../lib/types/activity';
+
+import FriendSuggestions from '../../../../lib/components/FriendSuggestions';
 
 import { useUnreadActivity } from '../../../../lib/context/UnreadActivityContext';
 
@@ -131,8 +134,11 @@ export default function FriendsScreen() {
   } = useFriendsActivity();
   const [refreshing, setRefreshing] = useState(false);
   const sections = useMemo(() => groupByDay(activity), [activity]);
+  
   const { markAsSeen } = useUnreadActivity();
   const { requests, refresh: refreshRequests } = useFollowRequests();
+  const { suggestions, refetch: refetchSuggestions } = useFriendSuggestions();
+  
 
   const firstFocus = useRef(true);
   useFocusEffect(
@@ -143,8 +149,9 @@ export default function FriendsScreen() {
       } else {
         refetch();
         refreshRequests(); // Une demande a pu être traitée depuis l'écran Demandes
+        refetchSuggestions();
       }
-    }, [markAsSeen, refetch, refreshRequests])
+    }, [markAsSeen, refetch, refreshRequests, refetchSuggestions])
   );
 
   async function onRefresh() {
@@ -153,6 +160,7 @@ export default function FriendsScreen() {
       await Promise.all([
         refetch(),
         refreshRequests(),
+        refetchSuggestions(),
         new Promise<void>(resolve => setTimeout(resolve, 600)), // délai artificiel minimum
       ]);
     } finally {
@@ -201,6 +209,7 @@ export default function FriendsScreen() {
           <Text style={styles.requestsChevron}>›</Text>
         </Pressable>
       )}
+      <FriendSuggestions suggestions={suggestions} />
     </View>
   )
 

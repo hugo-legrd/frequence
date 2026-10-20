@@ -565,6 +565,19 @@ export type Database = {
           requester_id: string
         }[]
       }
+      get_friend_suggestions: {
+        Args: { max_results?: number }
+        Returns: {
+          avatar_url: string
+          display_name: string
+          handle: string
+          id: string
+          mutual_count: number
+          shared_events: number
+          shared_genres: number
+          top_genre: string
+        }[]
+      }
       get_friends_activity: {
         Args: { before_at?: string; limit_count?: number }
         Returns: {
