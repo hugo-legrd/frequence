@@ -8,8 +8,9 @@ import {
   LastFmArtist,
 } from '../../services/lastfm';
 import { getArtistImage } from '../../services/deezer';
+import { timed } from '../../utils/perf';
 
-const CACHE_KEY = 'ecommendations_cache';
+const CACHE_KEY = 'recommendations_cache';
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24h
 
 export type ArtistRecommendation = {
@@ -49,92 +50,86 @@ export function useRecommendations() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadRecommendations();
-  }, []);
+    let cancelled = false;
 
-  async function loadRecommendations() {
-    await AsyncStorage.removeItem(CACHE_KEY);
-    try {
-      // Vérifier le cache 24h
-      const cached = await AsyncStorage.getItem(CACHE_KEY);
-      if (cached) {
-        const { data, timestamp } = JSON.parse(cached);
-        if (Date.now() - timestamp < CACHE_TTL) {
-          setRecommendations(data);
-          setLoading(false);
-          return;
-        }
-      }
-
-      // Récupérer les genres de l'utilisateur
-      const genres = await getUserGenres();
-      if (genres.length === 0) {
-        setLoading(false);
-        return;
-      }
-
-      // Pour chaque genre, récupérer les top artistes
-      const artistsMap = new Map<string, LastFmArtist>();
-
-      for (const genre of genres.slice(0, 3)) {
-        const artists = await getTopArtistsByTag(genre, 5);
-        for (const artist of artists) {
-          if (!artistsMap.has(artist.name)) {
-            artistsMap.set(artist.name, artist);
-          }
-        }
-      }
-
-      // Pour chaque artiste, récupérer des artistes similaires
-      const similarMap = new Map<string, LastFmArtist>();
-      const baseArtists = Array.from(artistsMap.values()).slice(0, 3);
-
-      for (const baseArtist of baseArtists) {
-        const similar = await getSimilarArtists(baseArtist.name, 5);
-        for (const artist of similar) {
-          if (!similarMap.has(artist.name) && !artistsMap.has(artist.name)) {
-            // Enrichir avec les tags
-            const tags = await getArtistTopTags(artist.name);
-            similarMap.set(artist.name, { ...artist, tags });
-          }
-        }
-      }
-
-      // Fusionner, dédupliquer, trier par match
-      const all = Array.from(similarMap.values())
-        .sort((a, b) => b.match - a.match)
-        .slice(0,10)
-        .map(a => ({
-          name: a.name,
-          match: Math.round(a.match * 100),
-          tags: a.tags.slice(0, 2),
-          initials: getInitials(a.name),
-          color: getAvatarColor(a.name),
-        }));
-
-        const enriched = await Promise.all(
-          all.map(async artist => {
-            const imageUrl = await getArtistImage(artist.name);
-            return { ...artist, imageUrl };
-          })
-        );
-
-        setRecommendations(enriched);
-
-        // Mettre en cache 24h
-        await AsyncStorage.setItem(CACHE_KEY, JSON.stringify({
-          data: enriched,
-          timestamp: Date.now(),
-        }));
-
-    } catch (err) {
-      console.warn('⚠️ Recommendations error:', err);
-    } finally {
+    timed('Recommandations', loadRecommendations).then(result => {
+      if (cancelled) return;
+      if (result) setRecommendations(result);
       setLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return { recommendations, loading };
+}
+
+async function loadRecommendations() {
+  const cached = await AsyncStorage.getItem(CACHE_KEY);
+  if (cached) {
+    try {
+      const { data, timestamp } = JSON.parse(cached);
+      if (Date.now() - timestamp < CACHE_TTL) return data;
+    } catch {
+      // cache illisible : on recalcule
     }
   }
 
-  return { recommendations, loading };
+  // Récupérer les genres de l'utilisateur
+  const genres = await getUserGenres();
+  if (genres.length === 0) return [];
+
+  // 2. le top artistes des 3 premiers genres, tous en même temps
+  const byTag = await Promise.all(
+    genres.slice(0, 3).map(genre => getTopArtistsByTag(genre, 5).catch(() => [] as LastFmArtist[]))
+  );
+  const artistsMap = new Map<string, LastFmArtist>();
+    for (const list of byTag) {
+      for (const artist of list) {
+          if (!artistsMap.has(artist.name)) artistsMap.set(artist.name, artist);
+      }
+    }
+
+  // 3. Les artsistes similaires au 3 premiers, tous en même temps
+  const baseArtists = Array.from(artistsMap.values()).slice(0, 3);
+  const similarLists = await Promise.all(
+    baseArtists.map(a => getSimilarArtists(a.name, 5).catch(() => [] as LastFmArtist[]))
+  );
+  const similarMap = new Map<string, LastFmArtist>();
+  for (const list of similarLists) {
+    for (const artist of list) {
+        if (!similarMap.has(artist.name) && !artistsMap.has(artist.name)) {
+          similarMap.set(artist.name, artist);
+        }
+      }
+    }
+
+    // 4. On garde les 10 meilleurs, puis tags + image en parallèle (seulement pour ces 10)
+    const top = Array.from(similarMap.values())
+      .sort((a, b) => b.match - a.match)
+      .slice(0,10)
+        
+    const enriched = await Promise.all(
+          top.map(async a => {
+            const [tags, imageUrl] = await Promise.all([
+              getArtistTopTags(a.name).catch(() => [] as string[]),
+              getArtistImage(a.name).catch(() => null),
+            ]);
+            return { 
+              name: a.name, 
+              match: Math.round(a.match * 100),
+              tags: tags.slice(0, 2),
+              initials: getInitials(a.name),
+              color: getAvatarColor(a.name),
+              imageUrl,
+            };
+          })
+        );
+
+    // 5. Mise en cache pour 24h
+    await AsyncStorage.setItem(CACHE_KEY, JSON.stringify({ data: enriched, timestamp: Date.now() }));
+    return enriched;
 }
 
 async function getUserGenres(): Promise<string[]> {

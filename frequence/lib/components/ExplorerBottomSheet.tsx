@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useRef, useMemo, useState } from "react";
 import { Animated, View, Text, StyleSheet, Pressable, Linking, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
 
@@ -6,7 +6,7 @@ import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 
 import { router } from 'expo-router';
 
-import { useRecommendations, ArtistRecommendation } from "../hooks/events/useRecommendations";
+import { ArtistRecommendation } from "../hooks/events/useRecommendations";
 import { useVenueEvents } from "../hooks/events/useVenueEvents";
 
 import { useVenueFollow } from "../hooks/venues/useVenueFollow";
@@ -26,6 +26,7 @@ type Props = {
   venueCount: number;
   storeCount: number;
   recommendations: ArtistRecommendation[];
+  recommendationsLoading: boolean;
   onIndexChange: (index: number) => void;
   animatedIndex: SharedValue<number>;
 };
@@ -33,6 +34,8 @@ type Props = {
 // Snap points fixes - on change juste l'index actif
 const SNAP_POINTS = ['30%', '55%'];
 
+const VENUE_EVENTS_PREVIEW = 5;
+const VENUE_EVENTS_MAX = 50;
 
 function formatEventDate(iso: string | null): string{
   if (!iso) return '';
@@ -45,15 +48,45 @@ function formatEventDate(iso: string | null): string{
   });
 }
 
+function ArtistCardSkeleton() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const opacity = useRef(new Animated.Value(0.3)).current;
+
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0.3, duration: 600, useNativeDriver: true })
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, []);
+
+  return (
+    <Animated.View style={[styles.skeletonCard, { opacity }]}>
+      <View style={styles.skeletonImage} />
+      <View style={styles.skeletonLine}/>
+      <View style={[styles.skeletonLine, { width: '60%' }]}/>
+    </Animated.View>
+  );
+}
+
 function VenueEventsList({ venueId }: { venueId: string }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { events, loading } = useVenueEvents(venueId);
+  const [expanded, setExpanded] = useState(false);
 
-  if (loading) {
+  const { events, total, loading } = useVenueEvents(
+    venueId,
+    expanded ? VENUE_EVENTS_MAX : VENUE_EVENTS_PREVIEW
+  );
+
+  if (loading && events.length === 0) {
     return (
       <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-        <ActivityIndicator color="#a78bfa" size="small" />
+        <ActivityIndicator color={colors.accent} size="small" />
       </View>
     );
   }
@@ -67,10 +100,12 @@ function VenueEventsList({ venueId }: { venueId: string }) {
     );
   }
 
+  const remaining = total - events.length; 
+
   return (
     <>
       <View style={styles.divider} />
-      <Text style={styles.sectionLabel}>Événements à venir</Text>
+      <Text style={styles.sectionLabel}>Événements à venir{total > VENUE_EVENTS_PREVIEW ? ` · ${total}` : ''}</Text>
       {events.map(event => (
         <Pressable
           key={event.id}
@@ -86,6 +121,18 @@ function VenueEventsList({ venueId }: { venueId: string }) {
           </View>
         </Pressable>
       ))}
+
+      {!expanded && remaining > 0 && (
+        <Pressable style={styles.seeMoreBtn} onPress={() => setExpanded(true)} hitSlop={6}>
+          <Text style={styles.seeMoreText}>
+            Voir {remaining} événement{remaining > 1 ? 's' : ''} de plus
+          </Text>
+        </Pressable>
+      )}
+
+      {expanded && loading && (
+        <ActivityIndicator color={colors.accent} size="small" style={{ marginTop: 12 }} />
+      )}
     </>
   );
 }
@@ -110,12 +157,11 @@ function VenueFollowButton({ venueId }: { venueId: string }) {
   );
 }
 
-export default function ExplorerBottomSheet({ selectedVenue, selectedStore, onClose, venueCount, storeCount, onIndexChange, animatedIndex }: Readonly<Props>) {
+export default function ExplorerBottomSheet({ selectedVenue, selectedStore, onClose, venueCount, storeCount, recommendations, recommendationsLoading, onIndexChange, animatedIndex }: Readonly<Props>) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   
   const bottomSheetRef = useRef<BottomSheet>(null);
-  const { recommendations, loading } = useRecommendations();
 
   // Rouvre la sheet quand une venue est sélectionnée
   useEffect(() => {
@@ -126,28 +172,6 @@ export default function ExplorerBottomSheet({ selectedVenue, selectedStore, onCl
     }
   }, [selectedVenue, selectedStore]);
 
-  function ArtistCardSkeleton() {
-    const opacity = useRef(new Animated.Value(0.3)).current;
-
-    useEffect(() => {
-      const anim = Animated.loop(
-        Animated.sequence([
-          Animated.timing(opacity, { toValue: 1, duration: 600, useNativeDriver: true }),
-          Animated.timing(opacity, { toValue: 0.3, duration: 600, useNativeDriver: true })
-        ])
-      );
-      anim.start();
-      return () => anim.stop();
-    }, []);
-
-    return (
-      <Animated.View style={[styles.skeletonCard, { opacity }]}>
-        <View style={styles.skeletonImage} />
-        <View style={styles.skeletonLine}/>
-        <View style={[styles.skeletonLine, { width: '60%' }]}/>
-      </Animated.View>
-    );
-  }
 
   function openMaps() {
     if (!selectedVenue) return;
@@ -174,7 +198,7 @@ export default function ExplorerBottomSheet({ selectedVenue, selectedStore, onCl
             </View>
             <View style={styles.venueTitleBlock}>
               <Text style={styles.venueName}>{selectedStore.name}</Text>
-              <Text style={[styles.venueType, { color: '#a78bfa' }]}>Disquaire</Text>
+              <Text style={[styles.venueType, { color: colors.accent }]}>Disquaire</Text>
             </View>
           </View>
 
@@ -198,7 +222,7 @@ export default function ExplorerBottomSheet({ selectedVenue, selectedStore, onCl
             <View style={styles.infoRow}>
               <Text style={styles.infoIcon}>🌐</Text>
               <Pressable onPress={() => Linking.openURL(selectedStore.website!)}>
-                <Text style={[styles.infoText, { color: '#a78bfa' }]}>{selectedStore.website}</Text>
+                <Text style={[styles.infoText, { color: colors.accent }]}>{selectedStore.website}</Text>
               </Pressable>
             </View>
           )}
@@ -251,7 +275,7 @@ export default function ExplorerBottomSheet({ selectedVenue, selectedStore, onCl
     return (
       <>
         <SearchBar />
-        {(loading || recommendations.length > 0) && (
+        {(recommendationsLoading || recommendations.length > 0) && (
           <>
             <Text style={[styles.sectionLabel, { marginTop: 16}]}> Recommandés pour toi</Text>
             <ScrollView 
@@ -260,7 +284,7 @@ export default function ExplorerBottomSheet({ selectedVenue, selectedStore, onCl
               style={styles.artistsScroll}
               contentContainerStyle={{ gap: 10, paddingRight: 16 }}
               >
-                {loading
+                {recommendationsLoading
                   ? Array.from({ length: 4 }).map((_, i) => <ArtistCardSkeleton key={i} />)
                   : recommendations.map(artist => (
                     <ArtistRecommendationCard
@@ -293,6 +317,12 @@ export default function ExplorerBottomSheet({ selectedVenue, selectedStore, onCl
     )
   }
 
+  const contentKey = selectedVenue
+    ? `venue-${selectedVenue.id}`
+    : selectedStore
+      ? `store-${selectedStore.id}`
+      : 'home';
+    
   return (
     <BottomSheet
       ref={bottomSheetRef}
@@ -325,8 +355,7 @@ export default function ExplorerBottomSheet({ selectedVenue, selectedStore, onCl
               <Text style={styles.closeBtnText}>✕</Text>
           </TouchableOpacity>
         )}
-
-        {renderContent()}
+        <View key={contentKey}>{renderContent()}</View>
       </BottomSheetScrollView>
     </BottomSheet>
   );
@@ -575,6 +604,20 @@ function createStyles(colors: ThemeColors) {
     color: colors.textMuted,
     fontSize: 12, 
     marginTop: 2,
-  }
+  },
+  seeMoreBtn: {
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: colors.divider,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  seeMoreText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: colors.accent,
+  },
 })
 };

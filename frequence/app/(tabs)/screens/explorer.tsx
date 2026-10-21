@@ -9,7 +9,7 @@ import {
 // MapView = composant principal de la carte (Apple Maps sur iOS)
 // Marker = pin sur la carte
 // PROVIDER_DEFAULT = utilise Apple Maps sur iOS, Google Maps sur Android
-import MapView, { Marker, PROVIDER_DEFAULT, Callout } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import Animated, { useSharedValue, useAnimatedStyle, interpolate, Extrapolation } from 'react-native-reanimated';
 
 import * as Location from 'expo-location';
@@ -197,9 +197,6 @@ export default function ExplorerScreen() {
               latitude: venue.latitude,
               longitude: venue.longitude,
             }}
-            title={venue.name ?? undefined}
-            description={venue.address ?? ''}
-            pinColor={colors.genre.festival.base}
             onPress={() => {
               setSelectedStore(null);
               setSelectedVenue(venue)}
@@ -213,15 +210,6 @@ export default function ExplorerScreen() {
                 !activeVenueIds.has(venue.id) && styles.pinHollow,
               ]} />
             </View>
-
-            <Callout tooltip>
-              <View style={styles.callout}>
-                <Text style={styles.calloutTitle}>{venue.name}</Text>
-                {venue.address && (
-                  <Text style={styles.calloutAddress}>{venue.address}</Text>
-                )}
-              </View>
-            </Callout>
           </Marker>
         ))}
         {/* Pins violets pour les disquaires */}
@@ -232,9 +220,6 @@ export default function ExplorerScreen() {
               latitude: store.latitude,
               longitude: store.longitude,
             }} 
-            title={store.name ?? undefined}
-            description={store.address ?? ''}
-            pinColor={colors.accent}
             onPress={() => {
               setSelectedVenue(null);
               setSelectedStore(store)
@@ -284,6 +269,7 @@ export default function ExplorerScreen() {
         venueCount={venues.length}
         storeCount={stores.length}
         recommendations={recommendations}
+        recommendationsLoading={recLoading}
         onIndexChange={setSheetIndex}
         animatedIndex={animatedIndex}
       />
